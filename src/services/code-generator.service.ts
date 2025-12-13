@@ -139,10 +139,43 @@ jobs:
           format: 'json'
           output: 'dockle-report.json'
 
-      # You can add other scanners here. For example:
-      # - Clair: (No official action, requires custom setup)
-      # - Tern: For generating a Software Bill of Materials (SBOM).
-      # - OpenSCAP: For compliance scanning.
+      # --- Additional Scanners ---
+      # The following scanners require specific configurations and secrets.
+      # Uncomment and configure them by adding the required secrets to your GitHub repository.
+
+      # - name: Scan with Wiz
+      #   uses: wiz-scan/wiz-scan-action@v1
+      #   with:
+      #     image: '${imageName}:${imageTag}'
+      #     wiz_client_id: \${{ secrets.WIZ_CLIENT_ID }}
+      #     wiz_client_secret: \${{ secrets.WIZ_CLIENT_SECRET }}
+
+      # - name: Scan with Black Duck (by Synopsys)
+      #   uses: synopsys-detect-action@v0.5.0
+      #   with:
+      #     image: '${imageName}:${imageTag}'
+      #     blackduck_url: \${{ secrets.BLACKDUCK_URL }}
+      #     blackduck_api_token: \${{ secrets.BLACKDUCK_API_TOKEN }}
+      #     detect_scan_mode: "RAPID"
+
+      # - name: Setup JFrog CLI
+      #   uses: jfrog/jfrog-setup-action@v4
+      #   env:
+      #     JF_URL: \${{ secrets.JFROG_URL }}
+      #     JF_ACCESS_TOKEN: \${{ secrets.JFROG_ACCESS_TOKEN }}
+      # - name: Scan with JFrog Xray
+      #   run: |
+      #     jf docker scan ${imageName}:${imageTag}
+
+      # Note on Polaris: Polaris scans Infrastructure as Code (e.g., Kubernetes YAML),
+      # not Docker images directly. You can add a step like the one below if you
+      # have Kubernetes manifests in your repository.
+      # - name: Run Polaris for Kubernetes best practices
+      #   uses: fairwindsops/polaris/action@v2
+      #   with:
+      #     path: ./path/to/your/kubernetes/manifests/
+      #     report-name: polaris-report.sarif
+      #     report-path: .
 `.trim();
   }
 

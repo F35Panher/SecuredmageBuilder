@@ -1,0 +1,75 @@
+<div class="space-y-8">
+  @for (stage of parsedDockerfile(); track stage.name; let isLastStage = $last) {
+    <div class="flex flex-col items-center">
+      <!-- Stage Header -->
+      <div class="bg-slate-800 border border-blue-500/50 rounded-lg px-4 py-2 text-center shadow-lg">
+        <h3 class="text-lg font-bold text-blue-300 capitalize">{{ stage.name }}</h3>
+        <p class="text-sm text-slate-400">FROM {{ stage.baseImage }}</p>
+      </div>
+
+      <!-- Steps within the Stage -->
+      <div class="w-full max-w-2xl mt-4">
+        @for (step of stage.steps; track $index) {
+          <div class="flex flex-col items-center">
+            <!-- Downward Arrow -->
+            <div class="h-6 w-0.5 bg-slate-700"></div>
+
+            <!-- Step Card -->
+            <div class="flex items-center w-full bg-slate-900 border border-slate-800 rounded-md p-3 shadow-md">
+              <div class="flex-shrink-0 w-10 h-10 bg-slate-800 rounded-full flex items-center justify-center mr-4">
+                @switch (step.command) {
+                  @case ('RUN') {
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                      <path fill-rule="evenodd" d="M2 5a2 2 0 012-2h12a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2V5zm3.293 2.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                    </svg>
+                  }
+                  @case ('COPY') {
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-cyan-400" viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M7 2a2 2 0 00-2 2v12a2 2 0 002 2h6a2 2 0 002-2V4a2 2 0 00-2-2H7zm3 14a1 1 0 100-2 1 1 0 000 2z" />
+                    </svg>
+                  }
+                   @case ('WORKDIR') {
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                    </svg>
+                  }
+                  @case ('CMD') {
+                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4" />
+                    </svg>
+                  }
+                   @case ('EXPOSE') {
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                  }
+                  @default {
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-400" viewBox="0 0 20 20" fill="currentColor">
+                      <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                    </svg>
+                  }
+                }
+              </div>
+              <div class="flex-grow">
+                <code class="text-sm font-mono text-slate-300 break-all">
+                  <span class="font-bold text-slate-100">{{ step.command }}</span> {{ step.args }}
+                </code>
+              </div>
+            </div>
+
+             <!-- Inter-stage connector for COPY --from -->
+            @if (step.command === 'COPY' && step.args.startsWith('--from')) {
+                @let fromStage = step.args.split(' ')[1];
+                <div class="relative w-full flex justify-center mt-2">
+                    <div class="absolute border-l-2 border-dashed border-cyan-500 h-8 -top-8"></div>
+                    <div class="bg-cyan-900/50 border border-cyan-700 text-cyan-300 text-xs px-3 py-1 rounded-full z-10">
+                        Copies from <span class="font-bold capitalize">{{ fromStage }}</span> stage
+                    </div>
+                </div>
+            }
+          </div>
+        }
+      </div>
+    </div>
+  }
+</div>

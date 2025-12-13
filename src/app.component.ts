@@ -6,6 +6,7 @@ import { CodeGeneratorService } from './services/code-generator.service';
 import { GeminiService } from './services/gemini.service';
 import { AdminComponent } from './admin/admin.component';
 import { CommonModule } from '@angular/common';
+import { DockerVisualizerComponent } from './visualizer/docker-visualizer.component';
 
 @Component({
   selector: 'app-root',
@@ -13,7 +14,7 @@ import { CommonModule } from '@angular/common';
   styleUrls: ['./app.component.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
-  imports: [AdminComponent, CommonModule],
+  imports: [AdminComponent, CommonModule, DockerVisualizerComponent],
 })
 export class AppComponent {
   private readonly configService = inject(ConfigService);
@@ -22,7 +23,7 @@ export class AppComponent {
   private readonly geminiService = inject(GeminiService);
 
   // App state
-  activeTab = signal<'audit' | 'dockerfile' | 'cicd'>('audit');
+  activeTab = signal<'audit' | 'dockerfile' | 'cicd' | 'visualizer'>('audit');
   viewMode = signal<'builder' | 'admin'>('builder');
   uiMode = signal<'classic' | 'modern'>('classic');
 
