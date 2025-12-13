@@ -9,7 +9,19 @@ export class SecurityAuditService {
   private readonly configService = inject(ConfigService);
   
   runAudit(config: ContainerConfig): { score: number; results: AuditResult[] } {
-    let score = 100;
+    const baseImages = this.configService.baseOs();
+    const selectedBaseImage = baseImages.find(os => os.id === config.baseOs);
+
+    // Define base scores for each security level
+    const BASE_SCORES = {
+      'Minimal': 100,
+      'Standard': 90,
+      'Full': 75
+    };
+    
+    // Initialize score based on the selected base image's security level
+    let score = selectedBaseImage ? BASE_SCORES[selectedBaseImage.securityLevel] : 90; // Default to standard if not found
+
     const results: AuditResult[] = [];
     const rules = this.configService.securityRules(); // Get current rules from the signal
 

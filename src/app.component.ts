@@ -1,23 +1,11 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { ContainerConfig, Severity } from './types';
+import { ContainerConfig, Severity, TechStackGroup, TechStackVersion } from './types';
 import { ConfigService } from './services/config.service';
 import { SecurityAuditService } from './services/security-audit.service';
 import { CodeGeneratorService } from './services/code-generator.service';
 import { GeminiService } from './services/gemini.service';
 import { AdminComponent } from './admin/admin.component';
 import { CommonModule } from '@angular/common';
-
-// New interfaces for grouped tech stacks
-interface TechStackVersion {
-  id: string;
-  version: string;
-}
-
-interface TechStackGroup {
-  techId: string;
-  name: string;
-  versions: TechStackVersion[];
-}
 
 @Component({
   selector: 'app-root',

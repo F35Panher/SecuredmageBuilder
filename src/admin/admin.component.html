@@ -1,7 +1,7 @@
 <div class="p-8 overflow-y-auto h-full space-y-8">
   <h1 class="text-3xl font-bold text-slate-100 border-b border-slate-800 pb-4">Admin Configuration</h1>
 
-  <!-- Generic Management Card for Tech Stacks and Packages -->
+  <!-- Generic Management Card for Packages -->
   <ng-template #selectableItemCard let-title="title" let-listName="listName" let-items="items">
     <div class="bg-slate-900 rounded-lg border border-slate-800">
       <h2 class="text-xl font-semibold text-blue-400 p-4 border-b border-slate-800">{{ title }}</h2>
@@ -34,9 +34,9 @@
       <div class="p-4 border-t border-slate-800 bg-slate-900/50 rounded-b-lg">
         <h3 class="font-semibold text-slate-300 mb-2">Add New</h3>
         <div class="flex gap-2">
-          <input type="text" [(ngModel)]="newSelectableItem().id" placeholder="ID (e.g., 'nodejs')" class="w-1/2 bg-slate-800 border border-slate-700 rounded-md px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500">
-          <input type="text" [(ngModel)]="newSelectableItem().name" placeholder="Display Name (e.g., 'Node.js')" class="w-1/2 bg-slate-800 border border-slate-700 rounded-md px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500">
-          <button (click)="addItem(listName)" class="px-4 py-2 text-sm font-semibold rounded-md bg-blue-600 hover:bg-blue-500 transition-colors">Add</button>
+          <input type="text" [(ngModel)]="newSelectableItem().id" placeholder="ID (e.g., 'curl')" class="w-1/2 bg-slate-800 border border-slate-700 rounded-md px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500">
+          <input type="text" [(ngModel)]="newSelectableItem().name" placeholder="Display Name (e.g., 'curl')" class="w-1/2 bg-slate-800 border border-slate-700 rounded-md px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500">
+          <button (click)="addItem('packages')" class="px-4 py-2 text-sm font-semibold rounded-md bg-blue-600 hover:bg-blue-500 transition-colors">Add</button>
         </div>
       </div>
     </div>
@@ -50,11 +50,23 @@
         @for (image of configService.baseOs(); track image.id) {
           <li class="flex justify-between items-center bg-slate-800/50 p-3 rounded-md">
             <div>
-              <span class="font-medium text-slate-200">{{ image.name }}</span>
-              <span class="ml-2 text-xs bg-slate-700 text-slate-400 px-2 py-0.5 rounded-full">{{ image.version }}</span>
-              @if(image.source) {
-                <p class="text-xs text-slate-500 mt-1 truncate">{{ image.source }}</p>
-              }
+              <div class="flex items-center gap-2 mb-1">
+                 <span class="font-medium text-slate-200">{{ image.name }}</span>
+                 <span class="text-xs bg-slate-700 text-slate-400 px-2 py-0.5 rounded-full">{{ image.version }}</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="px-2 py-0.5 text-xs rounded-full"
+                  [class.bg-green-500/30]="image.securityLevel === 'Minimal'"
+                  [class.text-green-300]="image.securityLevel === 'Minimal'"
+                  [class.bg-yellow-500/30]="image.securityLevel === 'Standard'"
+                  [class.text-yellow-300]="image.securityLevel === 'Standard'"
+                  [class.bg-orange-500/30]="image.securityLevel === 'Full'"
+                  [class.text-orange-400]="image.securityLevel === 'Full'"
+                >{{ image.securityLevel }}</span>
+                @if(image.source) {
+                  <p class="text-xs text-slate-500 truncate">{{ image.source }}</p>
+                }
+              </div>
             </div>
             <button (click)="configService.removeBaseImage(image.id)" class="p-1 text-slate-400 hover:text-red-400 flex-shrink-0 ml-4">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
@@ -64,17 +76,65 @@
       </ul>
       <div class="p-4 border-t border-slate-800 bg-slate-900/50 rounded-b-lg">
         <h3 class="font-semibold text-slate-300 mb-2">Add New Base Image</h3>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
-            <input type="text" [(ngModel)]="newBaseImage().name" placeholder="Display Name" class="bg-slate-800 border border-slate-700 rounded-md px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-2">
+            <input type="text" [(ngModel)]="newBaseImage().name" placeholder="Display Name" class="md:col-span-2 bg-slate-800 border border-slate-700 rounded-md px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500">
             <input type="text" [(ngModel)]="newBaseImage().id" placeholder="ID (e.g., 'wolfi')" class="bg-slate-800 border border-slate-700 rounded-md px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500">
             <input type="text" [(ngModel)]="newBaseImage().version" placeholder="Version (e.g., 'latest')" class="bg-slate-800 border border-slate-700 rounded-md px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500">
             <input type="text" [(ngModel)]="newBaseImage().source" placeholder="Source URL (Optional)" class="md:col-span-3 bg-slate-800 border border-slate-700 rounded-md px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500">
+            <select [(ngModel)]="newBaseImage().securityLevel" class="bg-slate-800 border border-slate-700 rounded-md px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500">
+                @for(level of securityLevels; track level) {
+                    <option [value]="level">{{level}}</option>
+                }
+            </select>
         </div>
         <button (click)="addBaseImage()" class="w-full mt-3 px-4 py-2 text-sm font-semibold rounded-md bg-blue-600 hover:bg-blue-500 transition-colors">Add Image</button>
       </div>
     </div>
     
-    <ng-container [ngTemplateOutlet]="selectableItemCard" [ngTemplateOutletContext]="{ title: 'Manage Tech Stacks', listName: 'techStacks', items: configService.techStacks() }"></ng-container>
+    <!-- New, dedicated Tech Stacks Card -->
+    <div class="bg-slate-900 rounded-lg border border-slate-800">
+      <h2 class="text-xl font-semibold text-blue-400 p-4 border-b border-slate-800">Manage Tech Stacks</h2>
+      <div class="p-4 space-y-2 max-h-60 overflow-y-auto">
+        @for (group of adminTechStackGroups(); track group.techId) {
+          <div class="bg-slate-800/50 rounded-md transition-all duration-200">
+             <button (click)="toggleTechGroup(group.techId)" class="w-full flex justify-between items-center p-3 text-left font-semibold text-slate-200 hover:bg-slate-800/60 rounded-md">
+                <span>{{ group.name }}</span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 transition-transform duration-200" [class.rotate-180]="openTechGroup() === group.techId">
+                    <path d="m6 9 6 6 6-6"></path>
+                </svg>
+            </button>
+            @if (openTechGroup() === group.techId) {
+              <div class="p-3 pt-0">
+                  <ul class="space-y-2 pl-4 border-l border-slate-700 mt-2">
+                    @for (version of group.versions; track version.id) {
+                      <li class="flex justify-between items-center bg-slate-800 p-2 rounded-md">
+                        <span>Version {{ version.version }} <code class="text-xs bg-slate-700 text-slate-400 px-1 rounded">{{ version.id }}</code></span>
+                        <button (click)="configService.removeSelectableItem('techStacks', version.id)" class="p-1 text-slate-400 hover:text-red-400">
+                           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                        </button>
+                      </li>
+                    } @empty {
+                       <li class="text-slate-500 text-sm p-2">No versions found for this technology.</li>
+                    }
+                  </ul>
+              </div>
+            }
+          </div>
+        } @empty {
+          <p class="text-slate-500 text-center">No tech stacks configured.</p>
+        }
+      </div>
+      <div class="p-4 border-t border-slate-800 bg-slate-900/50 rounded-b-lg">
+        <h3 class="font-semibold text-slate-300 mb-2">Add New Version</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
+          <input type="text" [(ngModel)]="newTechStack().techName" placeholder="Name (e.g., Node.js)" class="bg-slate-800 border border-slate-700 rounded-md px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500">
+          <input type="text" [(ngModel)]="newTechStack().techId" placeholder="ID (e.g., nodejs)" class="bg-slate-800 border border-slate-700 rounded-md px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500">
+          <input type="text" [(ngModel)]="newTechStack().version" placeholder="Version (e.g., 22)" class="bg-slate-800 border border-slate-700 rounded-md px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500">
+        </div>
+        <button (click)="addTechStackVersion()" class="w-full mt-3 px-4 py-2 text-sm font-semibold rounded-md bg-blue-600 hover:bg-blue-500 transition-colors">Add Version</button>
+      </div>
+    </div>
+
     <ng-container [ngTemplateOutlet]="selectableItemCard" [ngTemplateOutletContext]="{ title: 'Manage System Packages', listName: 'packages', items: packagesWithSeverity() }"></ng-container>
   </div>
 

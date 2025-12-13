@@ -3,9 +3,12 @@ export interface SelectableItem {
   name: string;
 }
 
+export type SecurityLevel = 'Minimal' | 'Standard' | 'Full';
+
 export interface BaseImage extends SelectableItem {
   version: string;
   source?: string;
+  securityLevel: SecurityLevel;
 }
 
 export interface EnvVar {
@@ -39,4 +42,16 @@ export interface AuditResult {
   severity: Severity;
   message: string;
   reason: string;
+}
+
+// New interfaces for grouped tech stacks
+export interface TechStackVersion {
+  id: string;
+  version: string;
+}
+
+export interface TechStackGroup {
+  techId: string;
+  name: string;
+  versions: TechStackVersion[];
 }

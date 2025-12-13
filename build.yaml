@@ -1,0 +1,318 @@
+openapi: 3.0.0
+info:
+  title: Docker Image Builder API
+  description: Backend API for the Docker Image Builder application. It handles configuration persistence and secure access to the Gemini API.
+  version: "1.0.0"
+
+servers:
+  - url: /api
+    description: API server
+
+tags:
+  - name: Configuration
+    description: Endpoints for managing the application's configurable options (base images, packages, rules).
+  - name: AI
+    description: Endpoints for interacting with the Gemini AI model.
+
+paths:
+  /config:
+    get:
+      tags:
+        - Configuration
+      summary: Retrieve the entire application configuration
+      description: Fetches all lists of base OS images, tech stacks, packages, and security rules.
+      operationId: getFullConfig
+      responses:
+        '200':
+          description: Successful retrieval of configuration.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FullConfig'
+  
+  /config/base-images:
+    post:
+      tags:
+        - Configuration
+      summary: Add a new base image
+      operationId: addBaseImage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BaseImage'
+      responses:
+        '201':
+          description: Base image created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseImage'
+
+  /config/base-images/{id}:
+    delete:
+      tags:
+        - Configuration
+      summary: Delete a base image by ID
+      operationId: deleteBaseImage
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Base image deleted successfully.
+
+  /config/tech-stacks:
+    post:
+      tags:
+        - Configuration
+      summary: Add a new tech stack version
+      operationId: addTechStack
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SelectableItem'
+      responses:
+        '201':
+          description: Tech stack created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SelectableItem'
+
+  /config/tech-stacks/{id}:
+    delete:
+      tags:
+        - Configuration
+      summary: Delete a tech stack by ID
+      operationId: deleteTechStack
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Tech stack deleted successfully.
+
+  /config/packages:
+    post:
+      tags:
+        - Configuration
+      summary: Add a new system package
+      operationId: addPackage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SelectableItem'
+      responses:
+        '201':
+          description: Package created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SelectableItem'
+
+  /config/packages/{id}:
+    delete:
+      tags:
+        - Configuration
+      summary: Delete a package by ID
+      operationId: deletePackage
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Package deleted successfully.
+          
+  /config/security-rules:
+    post:
+      tags:
+        - Configuration
+      summary: Add a new security rule
+      operationId: addSecurityRule
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SecurityRule'
+      responses:
+        '201':
+          description: Security rule created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SecurityRule'
+
+  /config/security-rules/{index}:
+    delete:
+      tags:
+        - Configuration
+      summary: Delete a security rule by its index
+      operationId: deleteSecurityRule
+      parameters:
+        - name: index
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Security rule deleted successfully.
+
+  /ai/suggestions:
+    post:
+      tags:
+        - AI
+      summary: Get AI-powered security suggestions
+      description: Sends the user's current container configuration to the backend to get security recommendations from the Gemini API.
+      operationId: getAiSuggestions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContainerConfig'
+      responses:
+        '200':
+          description: Successfully retrieved AI suggestions.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  suggestion:
+                    type: string
+                    example: "* Consider using a more minimal base image like 'wolfi'...\n* Remove the 'netcat' package as it can be used for malicious activities."
+
+components:
+  schemas:
+    SelectableItem:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+    
+    SecurityLevel:
+      type: string
+      enum:
+        - Minimal
+        - Standard
+        - Full
+        
+    BaseImage:
+      allOf:
+        - $ref: '#/components/schemas/SelectableItem'
+        - type: object
+          required:
+            - version
+            - securityLevel
+          properties:
+            version:
+              type: string
+            source:
+              type: string
+            securityLevel:
+              $ref: '#/components/schemas/SecurityLevel'
+
+    EnvVar:
+      type: object
+      properties:
+        key:
+          type: string
+        value:
+          type: string
+          
+    ContainerConfig:
+      type: object
+      properties:
+        baseOs:
+          type: string
+        techStack:
+          type: array
+          items:
+            type: string
+        packages:
+          type: array
+          items:
+            type: string
+        ports:
+          type: array
+          items:
+            type: string
+        envVars:
+          type: array
+          items:
+            $ref: '#/components/schemas/EnvVar'
+        registry:
+          type: string
+          
+    Severity:
+      type: string
+      enum:
+        - Critical
+        - High
+        - Medium
+        - Low
+        
+    SecurityRule:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - package
+            - port
+            - baseOs
+            - envVar
+        identifier:
+          type: string
+        severity:
+          $ref: '#/components/schemas/Severity'
+        message:
+          type: string
+        reason:
+          type: string
+        deduction:
+          type: number
+        techStack:
+          type: string
+          
+    FullConfig:
+      type: object
+      properties:
+        baseOs:
+          type: array
+          items:
+            $ref: '#/components/schemas/BaseImage'
+        techStacks:
+          type: array
+          items:
+            $ref: '#/components/schemas/SelectableItem'
+        packages:
+          type: array
+          items:
+            $ref: '#/components/schemas/SelectableItem'
+        securityRules:
+          type: array
+          items:
+            $ref: '#/components/schemas/SecurityRule'

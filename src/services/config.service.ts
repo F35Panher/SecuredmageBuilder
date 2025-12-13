@@ -5,15 +5,35 @@ import { BaseImage, SelectableItem, SecurityRule } from '../types';
   providedIn: 'root',
 })
 export class ConfigService {
-  baseOs = signal<BaseImage[]>([
-    { id: 'wolfi', name: 'Chainguard Wolfi', version: 'latest', source: 'cgr.dev/chainguard/wolfi-base' },
-    { id: 'distroless', name: 'Google Distroless', version: 'latest', source: 'gcr.io/distroless/static' },
-    { id: 'alpine', name: 'Alpine Linux', version: 'latest', source: 'docker.io/library/alpine' },
-    { id: 'debian-slim', name: 'Debian Slim', version: 'slim', source: 'docker.io/library/debian' },
-    { id: 'ubuntu', name: 'Ubuntu', version: 'latest', source: 'docker.io/library/ubuntu' },
-  ]);
+  private _getFromLocalStorage<T>(key: string, defaultValue: T): T {
+    try {
+      const item = localStorage.getItem(key);
+      return item ? JSON.parse(item) : defaultValue;
+    } catch (e) {
+      console.error(`Error reading from localStorage for key "${key}"`, e);
+      return defaultValue;
+    }
+  }
 
-  techStacks = signal<SelectableItem[]>([
+  private _saveToLocalStorage<T>(key: string, value: T): void {
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+    } catch (e) {
+      console.error(`Error saving to localStorage for key "${key}"`, e);
+    }
+  }
+
+  // --- Signals with Persistence ---
+
+  baseOs = signal<BaseImage[]>(this._getFromLocalStorage('config_baseOs', [
+    { id: 'wolfi', name: 'Chainguard Wolfi', version: 'latest', source: 'cgr.dev/chainguard/wolfi-base', securityLevel: 'Minimal' },
+    { id: 'distroless', name: 'Google Distroless', version: 'latest', source: 'gcr.io/distroless/static', securityLevel: 'Minimal' },
+    { id: 'alpine', name: 'Alpine Linux', version: 'latest', source: 'docker.io/library/alpine', securityLevel: 'Minimal' },
+    { id: 'debian-slim', name: 'Debian Slim', version: 'slim', source: 'docker.io/library/debian', securityLevel: 'Standard' },
+    { id: 'ubuntu', name: 'Ubuntu', version: 'latest', source: 'docker.io/library/ubuntu', securityLevel: 'Full' },
+  ]));
+
+  techStacks = signal<SelectableItem[]>(this._getFromLocalStorage('config_techStacks', [
     { id: 'nodejs-20', name: 'Node.js (v20)' },
     { id: 'nodejs-18', name: 'Node.js (v18)' },
     { id: 'python-3.11', name: 'Python (v3.11)' },
@@ -22,18 +42,18 @@ export class ConfigService {
     { id: 'golang-1.21', name: 'Go (v1.21)' },
     { id: 'java-17', name: 'Java (v17)' },
     { id: 'java-11', name: 'Java (v11)' },
-  ]);
+  ]));
 
-  packages = signal<SelectableItem[]>([
+  packages = signal<SelectableItem[]>(this._getFromLocalStorage('config_packages', [
     { id: 'git', name: 'git' },
     { id: 'curl', name: 'curl' },
     { id: 'openssl', name: 'openssl' },
     { id: 'sudo', name: 'sudo (Risky)' },
     { id: 'telnet', name: 'telnet (Risky)' },
     { id: 'netcat', name: 'netcat (Risky)' },
-  ]);
+  ]));
   
-  securityRules = signal<SecurityRule[]>([
+  securityRules = signal<SecurityRule[]>(this._getFromLocalStorage('config_securityRules', [
     { type: 'baseOs', identifier: 'distroless', severity: 'Low', message: 'Distroless Image Selected', reason: 'Distroless images are secure but require multi-stage builds done right.', deduction: -5 },
     { type: 'baseOs', identifier: 'ubuntu', severity: 'Medium', message: 'Bloated Base Image', reason: 'Ubuntu images can be large and have a wider attack surface.', deduction: 15 },
     { type: 'baseOs', identifier: 'debian-slim', severity: 'Low', message: 'Non-minimal Base Image', reason: 'Debian Slim is good, but Wolfi/Alpine are more minimal.', deduction: 5 },
@@ -44,29 +64,55 @@ export class ConfigService {
     { type: 'port', identifier: '23', severity: 'Critical', message: 'Port 23 (Telnet) is exposed', reason: 'Telnet is an insecure protocol and should not be used.', deduction: 30 },
     { type: 'port', identifier: '3389', severity: 'High', message: 'Port 3389 (RDP) is exposed', reason: 'Exposing RDP can open the container to brute-force attacks.', deduction: 20 },
     { type: 'envVar', identifier: '/_KEY|_SECRET|_PASSWORD|_TOKEN/i', severity: 'Critical', message: 'Potential hardcoded secret found', reason: 'Do not store secrets in environment variables. Use a secret management tool.', deduction: 40 },
-  ]);
+  ]));
+
+  // --- Update Methods with Persistence ---
 
   addBaseImage(image: BaseImage): void {
-    this.baseOs.update(images => [...images, image]);
+    this.baseOs.update(images => {
+      const updated = [...images, image];
+      this._saveToLocalStorage('config_baseOs', updated);
+      return updated;
+    });
   }
 
   removeBaseImage(id: string): void {
-    this.baseOs.update(images => images.filter(image => image.id !== id));
+    this.baseOs.update(images => {
+      const updated = images.filter(image => image.id !== id);
+      this._saveToLocalStorage('config_baseOs', updated);
+      return updated;
+    });
   }
 
   addSelectableItem(list: 'techStacks' | 'packages', item: SelectableItem): void {
-    this[list].update(items => [...items, item]);
+    this[list].update(items => {
+      const updated = [...items, item];
+      this._saveToLocalStorage(`config_${list}`, updated);
+      return updated;
+    });
   }
   
   removeSelectableItem(list: 'techStacks' | 'packages', id: string): void {
-    this[list].update(items => items.filter(item => item.id !== id));
+    this[list].update(items => {
+      const updated = items.filter(item => item.id !== id);
+      this._saveToLocalStorage(`config_${list}`, updated);
+      return updated;
+    });
   }
 
   addSecurityRule(rule: SecurityRule): void {
-    this.securityRules.update(rules => [...rules, rule]);
+    this.securityRules.update(rules => {
+      const updated = [...rules, rule];
+      this._saveToLocalStorage('config_securityRules', updated);
+      return updated;
+    });
   }
 
   removeSecurityRule(index: number): void {
-    this.securityRules.update(rules => rules.filter((_, i) => i !== index));
+    this.securityRules.update(rules => {
+      const updated = rules.filter((_, i) => i !== index);
+      this._saveToLocalStorage('config_securityRules', updated);
+      return updated;
+    });
   }
 }
