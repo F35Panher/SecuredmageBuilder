@@ -4,12 +4,13 @@
 
 ## ✨ Features
 
-- **Interactive Builder:** Visually select base images, technology stacks, system packages, and more.
+- **Interactive Builder:** Visually select base images, technology stacks (with version selection), system packages, and more.
+- **Dual UI Modes:** Choose between a classic, multi-pane layout or a modern, streamlined column-based view.
 - **Real-Time Security Audit:** Get an instant security score and actionable findings as you build your configuration.
 - **Dockerfile Generation:** Automatically generate an optimized, multi-stage Dockerfile based on your selections.
 - **CI/CD Pipeline Generation:** Generate a ready-to-use GitHub Actions workflow for building and scanning your container image.
 - **Extensible Admin Panel:** Configure the available options (base images, packages) and define custom security rules.
-- **AI-Powered Suggestions (New!):** Leverage the Gemini API to get intelligent recommendations for improving your security score.
+- **AI-Powered Suggestions:** Leverage the Gemini API to get intelligent recommendations for improving your security score.
 
 ## VERSION
 
