@@ -139,39 +139,38 @@ jobs:
           format: 'json'
           output: 'dockle-report.json'
 
-      # --- Additional Scanners ---
+      # --- Additional Advanced Scanners ---
       # The following scanners require specific configurations and secrets.
       # Uncomment and configure them by adding the required secrets to your GitHub repository.
 
-      # - name: Scan with Wiz
+      # - name: Scan image with Wiz for cloud-native visibility
       #   uses: wiz-scan/wiz-scan-action@v1
       #   with:
       #     image: '${imageName}:${imageTag}'
       #     wiz_client_id: \${{ secrets.WIZ_CLIENT_ID }}
       #     wiz_client_secret: \${{ secrets.WIZ_CLIENT_SECRET }}
 
-      # - name: Scan with Black Duck (by Synopsys)
-      #   uses: synopsys-detect-action@v0.5.0
+      # - name: Scan with Black Duck for Software Composition Analysis (SCA)
+      #   uses: synopsys/detect-action@1
       #   with:
-      #     image: '${imageName}:${imageTag}'
+      #     detect_opts: "--detect.docker.image=${imageName}:${imageTag} --detect.tools=DOCKER"
       #     blackduck_url: \${{ secrets.BLACKDUCK_URL }}
       #     blackduck_api_token: \${{ secrets.BLACKDUCK_API_TOKEN }}
-      #     detect_scan_mode: "RAPID"
 
-      # - name: Setup JFrog CLI
+      # - name: Setup JFrog CLI for Xray scan
       #   uses: jfrog/jfrog-setup-action@v4
       #   env:
       #     JF_URL: \${{ secrets.JFROG_URL }}
       #     JF_ACCESS_TOKEN: \${{ secrets.JFROG_ACCESS_TOKEN }}
-      # - name: Scan with JFrog Xray
+      # - name: Scan with JFrog Xray for deep binary analysis
       #   run: |
       #     jf docker scan ${imageName}:${imageTag}
 
       # Note on Polaris: Polaris scans Infrastructure as Code (e.g., Kubernetes YAML),
       # not Docker images directly. You can add a step like the one below if you
       # have Kubernetes manifests in your repository.
-      # - name: Run Polaris for Kubernetes best practices
-      #   uses: fairwindsops/polaris/action@v2
+      # - name: Run Polaris for Kubernetes best practices (IaC)
+      #   uses: fairwindsops/polaris/action@v5
       #   with:
       #     path: ./path/to/your/kubernetes/manifests/
       #     report-name: polaris-report.sarif

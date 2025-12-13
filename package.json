@@ -16,6 +16,7 @@
     "@google/genai": "^1.33.0",
     "@angular/common": "^21.0.0",
     "@angular/forms": "^21.0.5",
+    "js-yaml": "4.1.0",
     "@angular/build": "^21.0.0",
     "@angular/cli": "^21.0.0",
     "@angular/compiler-cli": "^21.0.0",

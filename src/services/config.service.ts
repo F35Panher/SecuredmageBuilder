@@ -1,10 +1,49 @@
 import { Injectable, signal } from '@angular/core';
 import { BaseImage, SelectableItem, SecurityRule } from '../types';
+import * as yaml from 'js-yaml';
 
 @Injectable({
   providedIn: 'root',
 })
 export class ConfigService {
+  // --- Signals ---
+  baseOs = signal<BaseImage[]>([]);
+  techStacks = signal<SelectableItem[]>([]);
+  packages = signal<SelectableItem[]>([]);
+  securityRules = signal<SecurityRule[]>([]);
+
+  constructor() {
+    this.loadInitialConfig();
+  }
+
+  private async loadInitialConfig(): Promise<void> {
+    try {
+      const response = await fetch('config.yaml');
+      if (!response.ok) {
+        throw new Error(`Failed to fetch config.yaml: ${response.statusText}`);
+      }
+      const yamlText = await response.text();
+      const defaults = yaml.load(yamlText) as {
+        baseOs: BaseImage[],
+        techStacks: SelectableItem[],
+        packages: SelectableItem[],
+        securityRules: SecurityRule[]
+      };
+
+      this.baseOs.set(this._getFromLocalStorage('config_baseOs', defaults.baseOs || []));
+      this.techStacks.set(this._getFromLocalStorage('config_techStacks', defaults.techStacks || []));
+      this.packages.set(this._getFromLocalStorage('config_packages', defaults.packages || []));
+      this.securityRules.set(this._getFromLocalStorage('config_securityRules', defaults.securityRules || []));
+      
+    } catch (error) {
+      console.error("Fatal: Could not load default configuration from config.yaml. Falling back to local storage or empty.", error);
+      this.baseOs.set(this._getFromLocalStorage('config_baseOs', []));
+      this.techStacks.set(this._getFromLocalStorage('config_techStacks', []));
+      this.packages.set(this._getFromLocalStorage('config_packages', []));
+      this.securityRules.set(this._getFromLocalStorage('config_securityRules', []));
+    }
+  }
+
   private _getFromLocalStorage<T>(key: string, defaultValue: T): T {
     try {
       const item = localStorage.getItem(key);
@@ -22,49 +61,6 @@ export class ConfigService {
       console.error(`Error saving to localStorage for key "${key}"`, e);
     }
   }
-
-  // --- Signals with Persistence ---
-
-  baseOs = signal<BaseImage[]>(this._getFromLocalStorage('config_baseOs', [
-    { id: 'wolfi', name: 'Chainguard Wolfi', version: 'latest', source: 'cgr.dev/chainguard/wolfi-base', securityLevel: 'Minimal' },
-    { id: 'distroless', name: 'Google Distroless', version: 'latest', source: 'gcr.io/distroless/static', securityLevel: 'Minimal' },
-    { id: 'alpine', name: 'Alpine Linux', version: 'latest', source: 'docker.io/library/alpine', securityLevel: 'Minimal' },
-    { id: 'debian-slim', name: 'Debian Slim', version: 'slim', source: 'docker.io/library/debian', securityLevel: 'Standard' },
-    { id: 'ubuntu', name: 'Ubuntu', version: 'latest', source: 'docker.io/library/ubuntu', securityLevel: 'Full' },
-  ]));
-
-  techStacks = signal<SelectableItem[]>(this._getFromLocalStorage('config_techStacks', [
-    { id: 'nodejs-20', name: 'Node.js (v20)' },
-    { id: 'nodejs-18', name: 'Node.js (v18)' },
-    { id: 'python-3.11', name: 'Python (v3.11)' },
-    { id: 'python-3.10', name: 'Python (v3.10)' },
-    { id: 'golang-1.22', name: 'Go (v1.22)' },
-    { id: 'golang-1.21', name: 'Go (v1.21)' },
-    { id: 'java-17', name: 'Java (v17)' },
-    { id: 'java-11', name: 'Java (v11)' },
-  ]));
-
-  packages = signal<SelectableItem[]>(this._getFromLocalStorage('config_packages', [
-    { id: 'git', name: 'git' },
-    { id: 'curl', name: 'curl' },
-    { id: 'openssl', name: 'openssl' },
-    { id: 'sudo', name: 'sudo (Risky)' },
-    { id: 'telnet', name: 'telnet (Risky)' },
-    { id: 'netcat', name: 'netcat (Risky)' },
-  ]));
-  
-  securityRules = signal<SecurityRule[]>(this._getFromLocalStorage('config_securityRules', [
-    { type: 'baseOs', identifier: 'distroless', severity: 'Low', message: 'Distroless Image Selected', reason: 'Distroless images are secure but require multi-stage builds done right.', deduction: -5 },
-    { type: 'baseOs', identifier: 'ubuntu', severity: 'Medium', message: 'Bloated Base Image', reason: 'Ubuntu images can be large and have a wider attack surface.', deduction: 15 },
-    { type: 'baseOs', identifier: 'debian-slim', severity: 'Low', message: 'Non-minimal Base Image', reason: 'Debian Slim is good, but Wolfi/Alpine are more minimal.', deduction: 5 },
-    { type: 'package', identifier: 'sudo', severity: 'High', message: 'Package "sudo" is installed', reason: 'Using sudo inside a container can enable privilege escalation.', deduction: 20 },
-    { type: 'package', identifier: 'telnet', severity: 'Critical', message: 'Package "telnet" is installed', reason: 'Telnet is an insecure protocol that transmits data in cleartext.', deduction: 30 },
-    { type: 'package', identifier: 'netcat', severity: 'Critical', message: 'Package "netcat" is installed', reason: 'netcat can be used for malicious network activities.', deduction: 25 },
-    { type: 'port', identifier: '22', severity: 'High', message: 'Port 22 (SSH) is exposed', reason: 'Exposing SSH on a container is highly discouraged. Use `docker exec` instead.', deduction: 25 },
-    { type: 'port', identifier: '23', severity: 'Critical', message: 'Port 23 (Telnet) is exposed', reason: 'Telnet is an insecure protocol and should not be used.', deduction: 30 },
-    { type: 'port', identifier: '3389', severity: 'High', message: 'Port 3389 (RDP) is exposed', reason: 'Exposing RDP can open the container to brute-force attacks.', deduction: 20 },
-    { type: 'envVar', identifier: '/_KEY|_SECRET|_PASSWORD|_TOKEN/i', severity: 'Critical', message: 'Potential hardcoded secret found', reason: 'Do not store secrets in environment variables. Use a secret management tool.', deduction: 40 },
-  ]));
 
   // --- Update Methods with Persistence ---
 
