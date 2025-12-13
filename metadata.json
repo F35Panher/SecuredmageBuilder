@@ -1,0 +1,5 @@
+{
+  "name": "Image Builder",
+  "description": "Generate stunning images from text descriptions using the power of AI. Simply type what you want to see and let the Image Builder bring your vision to life.",
+  "requestFramePermissions": []
+}
