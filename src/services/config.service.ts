@@ -1,0 +1,68 @@
+import { Injectable, signal } from '@angular/core';
+import { BaseImage, SelectableItem, SecurityRule } from '../types';
+
+@Injectable({
+  providedIn: 'root',
+})
+export class ConfigService {
+  baseOs = signal<BaseImage[]>([
+    { id: 'wolfi', name: 'Chainguard Wolfi', version: 'latest', source: 'cgr.dev/chainguard/wolfi-base' },
+    { id: 'distroless', name: 'Google Distroless', version: 'latest', source: 'gcr.io/distroless/static' },
+    { id: 'alpine', name: 'Alpine Linux', version: 'latest', source: 'docker.io/library/alpine' },
+    { id: 'debian-slim', name: 'Debian Slim', version: 'slim', source: 'docker.io/library/debian' },
+    { id: 'ubuntu', name: 'Ubuntu', version: 'latest', source: 'docker.io/library/ubuntu' },
+  ]);
+
+  techStacks = signal<SelectableItem[]>([
+    { id: 'nodejs', name: 'Node.js' },
+    { id: 'python', name: 'Python' },
+    { id: 'golang', name: 'Go' },
+    { id: 'java', name: 'Java' },
+  ]);
+
+  packages = signal<SelectableItem[]>([
+    { id: 'git', name: 'git' },
+    { id: 'curl', name: 'curl' },
+    { id: 'openssl', name: 'openssl' },
+    { id: 'sudo', name: 'sudo (Risky)' },
+    { id: 'telnet', name: 'telnet (Risky)' },
+    { id: 'netcat', name: 'netcat (Risky)' },
+  ]);
+  
+  securityRules = signal<SecurityRule[]>([
+    { type: 'baseOs', identifier: 'distroless', severity: 'Low', message: 'Distroless Image Selected', reason: 'Distroless images are secure but require multi-stage builds done right.', deduction: -5 },
+    { type: 'baseOs', identifier: 'ubuntu', severity: 'Medium', message: 'Bloated Base Image', reason: 'Ubuntu images can be large and have a wider attack surface.', deduction: 15 },
+    { type: 'baseOs', identifier: 'debian-slim', severity: 'Low', message: 'Non-minimal Base Image', reason: 'Debian Slim is good, but Wolfi/Alpine are more minimal.', deduction: 5 },
+    { type: 'package', identifier: 'sudo', severity: 'High', message: 'Package "sudo" is installed', reason: 'Using sudo inside a container can enable privilege escalation.', deduction: 20 },
+    { type: 'package', identifier: 'telnet', severity: 'Critical', message: 'Package "telnet" is installed', reason: 'Telnet is an insecure protocol that transmits data in cleartext.', deduction: 30 },
+    { type: 'package', identifier: 'netcat', severity: 'Critical', message: 'Package "netcat" is installed', reason: 'netcat can be used for malicious network activities.', deduction: 25 },
+    { type: 'port', identifier: '22', severity: 'High', message: 'Port 22 (SSH) is exposed', reason: 'Exposing SSH on a container is highly discouraged. Use `docker exec` instead.', deduction: 25 },
+    { type: 'port', identifier: '23', severity: 'Critical', message: 'Port 23 (Telnet) is exposed', reason: 'Telnet is an insecure protocol and should not be used.', deduction: 30 },
+    { type: 'port', identifier: '3389', severity: 'High', message: 'Port 3389 (RDP) is exposed', reason: 'Exposing RDP can open the container to brute-force attacks.', deduction: 20 },
+    { type: 'envVar', identifier: '/_KEY|_SECRET|_PASSWORD|_TOKEN/i', severity: 'Critical', message: 'Potential hardcoded secret found', reason: 'Do not store secrets in environment variables. Use a secret management tool.', deduction: 40 },
+  ]);
+
+  addBaseImage(image: BaseImage): void {
+    this.baseOs.update(images => [...images, image]);
+  }
+
+  removeBaseImage(id: string): void {
+    this.baseOs.update(images => images.filter(image => image.id !== id));
+  }
+
+  addSelectableItem(list: 'techStacks' | 'packages', item: SelectableItem): void {
+    this[list].update(items => [...items, item]);
+  }
+  
+  removeSelectableItem(list: 'techStacks' | 'packages', id: string): void {
+    this[list].update(items => items.filter(item => item.id !== id));
+  }
+
+  addSecurityRule(rule: SecurityRule): void {
+    this.securityRules.update(rules => [...rules, rule]);
+  }
+
+  removeSecurityRule(index: number): void {
+    this.securityRules.update(rules => rules.filter((_, i) => i !== index));
+  }
+}

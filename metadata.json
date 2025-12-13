@@ -1,5 +1,5 @@
 {
-  "name": "Image Builder",
-  "description": "Generate stunning images from text descriptions using the power of AI. Simply type what you want to see and let the Image Builder bring your vision to life.",
+  "name": "SecureContainer Builder",
+  "description": "A visual interface for developers to configure, audit, and generate production-ready Dockerfiles and CI/CD pipelines with a focus on security best practices.",
   "requestFramePermissions": []
 }
