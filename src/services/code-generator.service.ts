@@ -1,57 +1,81 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { ContainerConfig } from '../types';
+import { ConfigService } from './config.service';
 
 @Injectable({
   providedIn: 'root',
 })
 export class CodeGeneratorService {
+  private readonly configService = inject(ConfigService);
+
   generateDockerfile(config: ContainerConfig): string {
     const { baseOs, techStack, packages, ports, envVars } = config;
 
-    let baseImage = 'cgr.dev/chainguard/static:latest';
-    if (baseOs === 'alpine') baseImage = 'alpine:latest';
-    if (baseOs === 'debian-slim') baseImage = 'debian:slim';
-    if (baseOs === 'ubuntu') baseImage = 'ubuntu:latest';
+    const baseOsInfo = this.configService.baseOs().find(os => os.id === baseOs);
+    const baseImage = baseOsInfo?.source ? `${baseOsInfo.source}:${baseOsInfo.version}` : 'cgr.dev/chainguard/wolfi-base:latest';
 
-    const techSetup = this.getTechSetup(techStack, baseOs);
+    const techSetup = this.getTechSetup(techStack);
+    const isDistroless = baseOs.includes('distroless');
     const packageInstallCmd = this.getPackageInstallCmd(packages, baseOs);
 
-    return `
-# Stage 1: Builder
+    // User creation and package installation for non-distroless images
+    const setupBlock = isDistroless
+      ? `# This distroless image runs as non-root by default.
+# Package installation is not supported.`
+      : `# Create a non-root user and switch to it.
+# This is a security best practice to avoid running as root.
+RUN ${baseOs === 'alpine' || baseOs === 'wolfi' ? 'addgroup -S appgroup && adduser -S appuser -G appgroup' : 'addgroup --system appgroup && adduser --system --ingroup appgroup appuser'}
+USER appuser
+
+# Install necessary packages and clean up cache to keep image small
+${packageInstallCmd}`;
+
+    const builderStage = techSetup.builderImage
+      ? `# ---- Builder Stage ----
+# This stage builds the application and installs dependencies.
+# The final image will only copy the necessary artifacts from this stage.
 FROM ${techSetup.builderImage} as builder
 WORKDIR /app
-COPY . .
 ${techSetup.buildSteps}
+`
+      : '';
+    
+    const copyFromBuilder = techSetup.builderImage
+      ? `# Copy artifacts from the builder stage.
+COPY --from=builder ${techSetup.copyFrom} ${techSetup.copyTo}`
+      : `# Copy application files.
+# For production, it's better to use a multi-stage build to keep the image small.
+COPY . .`;
 
-# Stage 2: Runner
+
+    return `
+${builderStage}
+# ---- Final Stage ----
+# This is the final, minimal image that will be deployed.
 FROM ${baseImage}
 WORKDIR /app
 
-# Create a non-root user and switch to it
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
-USER appuser
+${setupBlock}
 
-# Install necessary packages
-${packageInstallCmd}
-
-# Copy artifacts from builder stage
-COPY --from=builder /app/${techSetup.artifactPath} .
+${copyFromBuilder}
 
 # Set environment variables
-${envVars.map(e => e.key && e.value ? `ENV ${e.key}=${e.value}` : '').filter(Boolean).join('\n')}
+${envVars.map(e => e.key && e.value ? `ENV ${e.key}="${e.value}"` : '').filter(Boolean).join('\n')}
 
 # Expose ports
 ${ports.map(p => p ? `EXPOSE ${p}` : '').filter(Boolean).join('\n')}
 
 # Set entrypoint/command
 CMD ${techSetup.runCommand}
-`.trim();
+`.trim().replace(/\n\n+/g, '\n\n');
   }
   
   generateCiCd(config: ContainerConfig): string {
-    const imageName = `my-secure-app`;
+    const imageName = `${config.registry}/\${{ github.repository_owner }}/my-secure-app`.toLowerCase();
+    const imageTag = `\${{ github.sha }}`;
+
     return `
-name: Build and Scan Container
+name: Build, Scan, and Publish Docker Image
 
 on:
   push:
@@ -60,73 +84,177 @@ on:
     branches: [ "main" ]
 
 jobs:
-  build-and-scan:
+  build_and_scan:
+    name: Build and Scan
     runs-on: ubuntu-latest
+    
+    permissions:
+      contents: read
+      packages: write # Required for pushing packages to GHCR.
+      security-events: write # Required for uploading SARIF results.
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Log in to the Container registry
+        if: github.event_name != 'pull_request'
         uses: docker/login-action@v3
         with:
           registry: ${config.registry}
           username: \${{ github.actor }}
           password: \${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push Docker image
+      - name: Build Docker image
+        id: build-and-push
         uses: docker/build-push-action@v5
         with:
           context: .
-          push: true
-          tags: ${config.registry}/\${{ github.repository_owner }}/${imageName}:\${{ github.sha }}
+          # Push only on merges to main, not on PRs
+          push: \${{ github.event_name != 'pull_request' }}
+          tags: ${imageName}:${imageTag}
+          # Load the image into the local Docker daemon to make it available for scanners
+          load: true 
 
-      - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
+      - name: Run Grype vulnerability scanner
+        uses: anchore/grype-action@v0
         with:
-          image-ref: '${config.registry}/\${{ github.repository_owner }}/${imageName}:\${{ github.sha }}'
-          format: 'table'
+          image: '${imageName}:${imageTag}'
+          fail-on-severity: 'high'
+          output-format: 'sarif'
+          sarif-file: 'grype-results.sarif'
+          
+      - name: Upload Grype scan results to GitHub Security tab
+        if: success() || failure() # Always run this step to upload results
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'grype-results.sarif'
+          
+      - name: Run Dockle linter for Dockerfile best practices
+        uses: goodwithtech/dockle-action@v1
+        with:
+          image: '${imageName}:${imageTag}'
           exit-code: '1'
-          ignore-unfixed: true
-          vuln-type: 'os,library'
-          severity: 'CRITICAL,HIGH'
+          exit-level: 'warn'
+          format: 'json'
+          output: 'dockle-report.json'
+
+      # You can add other scanners here. For example:
+      # - Clair: (No official action, requires custom setup)
+      # - Tern: For generating a Software Bill of Materials (SBOM).
+      # - OpenSCAP: For compliance scanning.
 `.trim();
   }
 
-  private getTechSetup(techStack: string[], baseOs: string) {
-    if (techStack.includes('nodejs')) {
-      return {
-        builderImage: 'node:20-alpine',
-        buildSteps: 'RUN npm install && npm run build',
-        artifactPath: 'dist',
-        runCommand: '["node", "index.js"]'
-      };
+  private getTechSetup(techStackIds: string[]) {
+    const priority = ['golang', 'java', 'nodejs', 'python'];
+    let primaryTechId: string | undefined;
+
+    for (const lang of priority) {
+        primaryTechId = techStackIds.find(id => id.startsWith(lang));
+        if (primaryTechId) break;
     }
-    if (techStack.includes('python')) {
-       return {
-        builderImage: 'python:3.11-slim',
-        buildSteps: 'RUN pip install -r requirements.txt',
-        artifactPath: '.',
-        runCommand: '["python", "app.py"]'
-      };
+
+    if (!primaryTechId) {
+        return {
+            builderImage: null,
+            buildSteps: '',
+            copyFrom: '.',
+            copyTo: '.',
+            runCommand: '["/bin/sh", "-c", "echo Your app is running!"]'
+        };
     }
-     // Default/fallback for Go or others
-    return {
-      builderImage: 'golang:1.21-alpine',
-      buildSteps: 'RUN go build -o /main .',
-      artifactPath: '/main',
-      runCommand: '["./main"]'
-    };
+
+    const [language, version] = primaryTechId.split('-');
+
+    switch (language) {
+      case 'golang':
+        return {
+            builderImage: `golang:${version}-alpine`,
+            buildSteps: `
+# Copy Go module files and download dependencies first to leverage Docker cache.
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Copy the rest of the source code and build.
+COPY . .
+RUN CGO_ENABLED=0 go build -o /app/server .`.trim(),
+            copyFrom: '/app/server',
+            copyTo: '/app/server',
+            runCommand: '["/app/server"]'
+        };
+      case 'java':
+        return {
+            builderImage: `maven:3.9-eclipse-temurin-${version}`,
+            buildSteps: `
+# Copy POM file and download dependencies to leverage Docker cache.
+COPY pom.xml .
+RUN mvn dependency:go-offline
+
+# Copy the source code and build the application JAR.
+COPY src ./src
+RUN mvn package -DskipTests && mv target/*.jar /app/app.jar`.trim(),
+            copyFrom: '/app/app.jar',
+            copyTo: '/app/app.jar',
+            runCommand: '["java", "-jar", "/app/app.jar"]'
+        };
+      case 'nodejs':
+        return {
+            builderImage: `node:${version}-alpine`,
+            buildSteps: `
+# Copy package manifests and install dependencies to leverage Docker cache.
+COPY package*.json ./
+RUN npm ci
+
+# Copy the rest of the source code and build.
+COPY . .
+RUN npm run build`.trim(),
+            copyFrom: '/app/dist',
+            copyTo: '.',
+            runCommand: '["node", "index.js"]'
+        };
+      case 'python':
+        return {
+            builderImage: `python:${version}-slim`,
+            buildSteps: `
+# Install dependencies first to leverage Docker cache.
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy the application files.
+COPY . .`.trim(),
+            copyFrom: '/app',
+            copyTo: '.',
+            runCommand: '["python", "app.py"]'
+        };
+      default:
+        return {
+            builderImage: null,
+            buildSteps: '',
+            copyFrom: '.',
+            copyTo: '.',
+            runCommand: '["/bin/sh", "-c", "echo Your app is running!"]'
+        };
+    }
   }
   
   private getPackageInstallCmd(packages: string[], baseOs: string): string {
+    if (baseOs.includes('distroless')) {
+      return packages.length > 0
+        ? '# NOTE: Cannot install packages into distroless images. Remove packages or choose a different base image.'
+        : '# No packages to install (distroless base image)';
+    }
+    
     if (packages.length === 0) {
-      return '# No packages to install';
+      return '# No additional packages to install';
     }
     
     if (baseOs === 'alpine' || baseOs === 'wolfi') {
       return `RUN apk update && apk add --no-cache ${packages.join(' ')}`;
     }
+    
     // Debian/Ubuntu
-    return `RUN apt-get update && apt-get install -y --no-install-recommends ${packages.join(' ')} && rm -rf /var/lib/apt/lists/*`;
+    return `RUN apt-get update && apt-get install -y --no-install-recommends ${packages.join(' ')} \\
+    && rm -rf /var/lib/apt/lists/*`;
   }
 }

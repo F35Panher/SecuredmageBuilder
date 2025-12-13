@@ -7,6 +7,18 @@ import { GeminiService } from './services/gemini.service';
 import { AdminComponent } from './admin/admin.component';
 import { CommonModule } from '@angular/common';
 
+// New interfaces for grouped tech stacks
+interface TechStackVersion {
+  id: string;
+  version: string;
+}
+
+interface TechStackGroup {
+  techId: string;
+  name: string;
+  versions: TechStackVersion[];
+}
+
 @Component({
   selector: 'app-root',
   templateUrl: './app.component.html',
@@ -24,6 +36,7 @@ export class AppComponent {
   // App state
   activeTab = signal<'audit' | 'dockerfile' | 'cicd'>('audit');
   viewMode = signal<'builder' | 'admin'>('builder');
+  uiMode = signal<'classic' | 'modern'>('classic');
 
   // AI suggestion state
   aiSuggestion = signal<string>('');
@@ -37,7 +50,7 @@ export class AppComponent {
   // User's current container configuration
   config = signal<ContainerConfig>({
     baseOs: 'wolfi',
-    techStack: ['nodejs'],
+    techStack: ['nodejs-20'],
     packages: ['git'],
     ports: ['8080'],
     envVars: [{ key: 'NODE_ENV', value: 'production' }],
@@ -65,6 +78,24 @@ export class AppComponent {
     this.packagesWithSeverity().filter(p => this.config().packages.includes(p.id))
   );
 
+  techStackGroups = computed((): TechStackGroup[] => {
+    const options = this.techStackOptions();
+    const groups: { [key: string]: TechStackGroup } = {};
+
+    options.forEach(option => {
+        const match = option.name.match(/(.+) \(v(.+)\)/);
+        if (match) {
+            const [, techName, version] = match;
+            const techId = option.id.split('-')[0];
+            if (!groups[techId]) {
+                groups[techId] = { techId: techId, name: techName, versions: [] };
+            }
+            groups[techId].versions.push({ id: option.id, version });
+        }
+    });
+    return Object.values(groups);
+  });
+
 
   // --- Methods to update configuration ---
 
@@ -72,17 +103,42 @@ export class AppComponent {
     this.config.update(c => ({ ...c, baseOs: osId }));
   }
 
-  toggleTechStack(itemId: string): void {
+  isTechStackSelected(techId: string): boolean {
+    return this.config().techStack.some(id => id.startsWith(techId));
+  }
+  
+  getSelectedTechVersion(techId: string): string {
+    return this.config().techStack.find(id => id.startsWith(techId)) || '';
+  }
+
+  toggleTechStackGroup(techId: string, versions: TechStackVersion[]): void {
     this.config.update(c => {
-      const currentItems = c.techStack;
-      const newItems = currentItems.includes(itemId)
-        ? currentItems.filter(id => id !== itemId)
-        : [...currentItems, itemId];
-      return { ...c, techStack: newItems };
+      const isSelected = c.techStack.some(id => id.startsWith(techId));
+      let newTechStack = [...c.techStack];
+  
+      if (isSelected) {
+        // Remove all versions of this tech stack
+        newTechStack = newTechStack.filter(id => !id.startsWith(techId));
+      } else {
+        // Add the first version as default
+        if (versions.length > 0) {
+          newTechStack.push(versions[0].id);
+        }
+      }
+      return { ...c, techStack: newTechStack };
+    });
+  }
+  
+  setTechStackVersion(techId: string, newVersionId: string): void {
+    this.config.update(c => {
+      // Remove any existing version for this tech stack
+      const otherTechs = c.techStack.filter(id => !id.startsWith(techId));
+      return { ...c, techStack: [...otherTechs, newVersionId] };
     });
   }
   
   addPackage(pkgId: string): void {
+    if (!pkgId || this.config().packages.includes(pkgId)) return;
     this.config.update(c => ({...c, packages: [...c.packages, pkgId]}));
   }
 
@@ -128,6 +184,18 @@ export class AppComponent {
     } catch (err) {
       console.error('Failed to copy text: ', err);
     }
+  }
+  
+  downloadFile(content: string, filename: string): void {
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = filename;
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    URL.revokeObjectURL(url);
   }
 
   async generateAiSuggestion(): Promise<void> {

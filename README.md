@@ -1,6 +1,6 @@
-# SecureContainer Builder
+# Docker Image Builder
 
-**SecureContainer Builder** is a visual tool designed to help developers configure, audit, and generate production-ready Dockerfiles and CI/CD pipelines with a strong focus on security best practices. It provides real-time feedback on configuration choices, helping to create minimal, secure, and efficient container images by default.
+**Docker Image Builder** is a visual tool designed to help developers configure, audit, and generate production-ready Dockerfiles and CI/CD pipelines with a strong focus on security best practices. It provides real-time feedback on configuration choices, helping to create minimal, secure, and efficient container images by default.
 
 ## ✨ Features
 

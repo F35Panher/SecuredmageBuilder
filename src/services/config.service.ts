@@ -14,10 +14,14 @@ export class ConfigService {
   ]);
 
   techStacks = signal<SelectableItem[]>([
-    { id: 'nodejs', name: 'Node.js' },
-    { id: 'python', name: 'Python' },
-    { id: 'golang', name: 'Go' },
-    { id: 'java', name: 'Java' },
+    { id: 'nodejs-20', name: 'Node.js (v20)' },
+    { id: 'nodejs-18', name: 'Node.js (v18)' },
+    { id: 'python-3.11', name: 'Python (v3.11)' },
+    { id: 'python-3.10', name: 'Python (v3.10)' },
+    { id: 'golang-1.22', name: 'Go (v1.22)' },
+    { id: 'golang-1.21', name: 'Go (v1.21)' },
+    { id: 'java-17', name: 'Java (v17)' },
+    { id: 'java-11', name: 'Java (v11)' },
   ]);
 
   packages = signal<SelectableItem[]>([

@@ -1,5 +1,5 @@
 {
-  "name": "SecureContainer Builder",
+  "name": "Docker Image Builder",
   "description": "A visual interface for developers to configure, audit, and generate production-ready Dockerfiles and CI/CD pipelines with a focus on security best practices.",
   "requestFramePermissions": []
 }
