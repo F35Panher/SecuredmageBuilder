@@ -1,20 +1,85 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# SecureContainer Builder
 
-# Run and deploy your AI Studio app
+**SecureContainer Builder** is a visual tool designed to help developers configure, audit, and generate production-ready Dockerfiles and CI/CD pipelines with a strong focus on security best practices. It provides real-time feedback on configuration choices, helping to create minimal, secure, and efficient container images by default.
 
-This contains everything you need to run your app locally.
+## ✨ Features
 
-View your app in AI Studio: https://ai.studio/apps/drive/1K5d393axfcdoAPh6q_de5G3lZ0gxv5gK
+- **Interactive Builder:** Visually select base images, technology stacks, system packages, and more.
+- **Real-Time Security Audit:** Get an instant security score and actionable findings as you build your configuration.
+- **Dockerfile Generation:** Automatically generate an optimized, multi-stage Dockerfile based on your selections.
+- **CI/CD Pipeline Generation:** Generate a ready-to-use GitHub Actions workflow for building and scanning your container image.
+- **Extensible Admin Panel:** Configure the available options (base images, packages) and define custom security rules.
+- **AI-Powered Suggestions (New!):** Leverage the Gemini API to get intelligent recommendations for improving your security score.
 
-## Run Locally
+## VERSION
 
-**Prerequisites:**  Node.js
+See the `VERSION` file for the current version of the application.
 
+## 🚀 Deployment
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+This is a standalone Angular application. It can be built and served from any static web server.
+
+### Build Process
+
+A simple build script is provided to copy the necessary files into a `dist` directory.
+
+```bash
+sh build.sh
+```
+
+This will create a `dist/` directory containing `index.html`, `index.tsx`, `metadata.json`, and the `src/` folder.
+
+### 1. In-House / Local Deployment (using Docker)
+
+You can easily serve the application using the provided `Dockerfile.deploy`. This Dockerfile sets up an Nginx server to host the static application files.
+
+**Steps:**
+
+1.  **Build the application:**
+    ```bash
+    sh build.sh
+    ```
+2.  **Build the deployment Docker image:**
+    ```bash
+    docker build -t secure-container-builder -f Dockerfile.deploy .
+    ```
+3.  **Run the container:**
+    ```bash
+    docker run -d -p 8080:80 secure-container-builder
+    ```
+The application will now be available at `http://localhost:8080`.
+
+### 2. Cloud Deployment (e.g., Google Cloud Run)
+
+You can deploy the application as a serverless container on services like Google Cloud Run.
+
+**Prerequisites:**
+
+-   Google Cloud SDK (`gcloud`) installed and authenticated.
+-   A Google Cloud project with Cloud Run and Artifact Registry APIs enabled.
+
+**Steps:**
+
+1.  **Build the application:**
+    ```bash
+    sh build.sh
+    ```
+2.  **Configure gcloud CLI:**
+    ```bash
+    gcloud config set project YOUR_PROJECT_ID
+    gcloud config set run/region YOUR_REGION # e.g., us-central1
+    ```
+3.  **Build and push the container image to Artifact Registry:**
+    ```bash
+    gcloud builds submit --tag YOUR_REGION-docker.pkg.dev/YOUR_PROJECT_ID/secure-builder-repo/app --file=Dockerfile.deploy
+    ```
+4.  **Deploy to Cloud Run:**
+    ```bash
+    gcloud run deploy secure-container-builder \
+      --image YOUR_REGION-docker.pkg.dev/YOUR_PROJECT_ID/secure-builder-repo/app \
+      --platform managed \
+      --region YOUR_REGION \
+      --allow-unauthenticated
+    ```
+
+After deployment, `gcloud` will provide you with a URL to access your live application.
