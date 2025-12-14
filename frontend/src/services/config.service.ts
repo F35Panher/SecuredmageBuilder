@@ -11,6 +11,7 @@ export class ConfigService {
   techStacks = signal<SelectableItem[]>([]);
   packages = signal<SelectableItem[]>([]);
   securityRules = signal<SecurityRule[]>([]);
+  aiSuggestionsEnabled = signal<boolean>(true);
 
   constructor() {
     this.loadInitialConfig();
@@ -27,13 +28,15 @@ export class ConfigService {
         baseOs: BaseImage[],
         techStacks: SelectableItem[],
         packages: SelectableItem[],
-        securityRules: SecurityRule[]
+        securityRules: SecurityRule[],
+        aiSuggestionsEnabled?: boolean,
       };
 
       this.baseOs.set(this._getFromLocalStorage('config_baseOs', defaults.baseOs || []));
       this.techStacks.set(this._getFromLocalStorage('config_techStacks', defaults.techStacks || []));
       this.packages.set(this._getFromLocalStorage('config_packages', defaults.packages || []));
       this.securityRules.set(this._getFromLocalStorage('config_securityRules', defaults.securityRules || []));
+      this.aiSuggestionsEnabled.set(this._getFromLocalStorage('config_aiSuggestionsEnabled', defaults.aiSuggestionsEnabled !== undefined ? defaults.aiSuggestionsEnabled : true));
       
     } catch (error) {
       console.error("Fatal: Could not load default configuration from config.yaml. Falling back to local storage or empty.", error);
@@ -110,5 +113,10 @@ export class ConfigService {
       this._saveToLocalStorage('config_securityRules', updated);
       return updated;
     });
+  }
+
+  setAiSuggestionsEnabled(enabled: boolean): void {
+    this.aiSuggestionsEnabled.set(enabled);
+    this._saveToLocalStorage('config_aiSuggestionsEnabled', enabled);
   }
 }

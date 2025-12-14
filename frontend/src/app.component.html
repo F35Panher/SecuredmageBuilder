@@ -168,18 +168,7 @@
             </div>
           </div>
 
-          <!-- AI Suggestions -->
-          <div class="border-t border-slate-700 pt-6 mt-6">
-              <button (click)="generateAiSuggestion()" [disabled]="isGeneratingSuggestion()" class="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 disabled:cursor-not-allowed text-white text-sm font-semibold py-2 px-4 rounded-md transition-colors">
-                {{ isGeneratingSuggestion() ? 'Thinking...' : 'Get AI Suggestions' }}
-              </button>
-              @if(aiSuggestion()) {
-                <div class="text-sm text-slate-400 mt-4 p-3 bg-slate-800/50 rounded-md border border-slate-700/50">
-                  <h3 class="font-semibold text-slate-300 mb-2">Recommendations</h3>
-                  <p class="whitespace-pre-wrap">{{ aiSuggestion() }}</p>
-                </div>
-              }
-          </div>
+
         </aside>
 
         <!-- Main Content: Previews -->
@@ -360,18 +349,7 @@
             </div>
           </div>
           
-           <!-- AI Suggestions -->
-          <div class="border-t border-slate-700 pt-6 mt-auto">
-              <button (click)="generateAiSuggestion()" [disabled]="isGeneratingSuggestion()" class="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 disabled:cursor-not-allowed text-white text-sm font-semibold py-3 px-4 rounded-md transition-colors">
-                {{ isGeneratingSuggestion() ? 'Analyzing...' : 'Generate & Review' }}
-              </button>
-              @if(aiSuggestion()) {
-                <div class="text-sm text-slate-400 mt-4 p-3 bg-slate-800/50 rounded-md border border-slate-700/50">
-                  <h3 class="font-semibold text-slate-300 mb-2">Recommendations</h3>
-                  <p class="whitespace-pre-wrap">{{ aiSuggestion() }}</p>
-                </div>
-              }
-          </div>
+
         </aside>
 
         <!-- Column 2: Audit & Score -->
@@ -444,6 +422,6 @@
       </div>
     }
   } @else {
-    <app-admin />
+    <app-admin [config]="config()"></app-admin>
   }
 </div>

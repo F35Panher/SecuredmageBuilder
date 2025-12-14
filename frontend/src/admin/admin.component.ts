@@ -1,8 +1,9 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal, Input } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { ConfigService } from '../services/config.service';
-import { BaseImage, SecurityRule, SelectableItem, Severity, SecurityLevel, TechStackGroup } from '../types';
+import { BaseImage, SecurityRule, SelectableItem, Severity, SecurityLevel, TechStackGroup, ContainerConfig } from '../types';
+import { GeminiService } from '../services/gemini.service';
 
 @Component({
   selector: 'app-admin',
@@ -13,7 +14,14 @@ import { BaseImage, SecurityRule, SelectableItem, Severity, SecurityLevel, TechS
 })
 export class AdminComponent {
   configService = inject(ConfigService);
+  geminiService = inject(GeminiService);
+
+  @Input() config!: ContainerConfig;
   
+  // AI suggestion state
+  aiSuggestion = signal<string>('');
+  isGeneratingSuggestion = signal<boolean>(false);
+
   newSelectableItem = signal<SelectableItem>({ id: '', name: '' });
   newBaseImage = signal<BaseImage>({ id: '', name: '', version: '', source: '', securityLevel: 'Standard' });
   newTechStack = signal({ techId: '', techName: '', version: '' });
@@ -116,6 +124,19 @@ export class AdminComponent {
         deduction: 10,
         techStack: 'all'
       });
+    }
+  }
+
+  async generateAiSuggestion(): Promise<void> {
+    this.isGeneratingSuggestion.set(true);
+    this.aiSuggestion.set('');
+    try {
+      const suggestion = await this.geminiService.getSecurityRecommendations(this.config);
+      this.aiSuggestion.set(suggestion);
+    } catch (error) {
+      this.aiSuggestion.set('Failed to generate suggestions.');
+    } finally {
+      this.isGeneratingSuggestion.set(false);
     }
   }
 }

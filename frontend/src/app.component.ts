@@ -3,7 +3,6 @@ import { ContainerConfig, Severity, TechStackGroup, TechStackVersion } from './t
 import { ConfigService } from './services/config.service';
 import { SecurityAuditService } from './services/security-audit.service';
 import { CodeGeneratorService } from './services/code-generator.service';
-import { GeminiService } from './services/gemini.service';
 import { AdminComponent } from './admin/admin.component';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -21,18 +20,18 @@ export class AppComponent {
   private readonly configService = inject(ConfigService);
   private readonly auditService = inject(SecurityAuditService);
   private readonly codeGenerator = inject(CodeGeneratorService);
-  private readonly geminiService = inject(GeminiService);
 
-  // App state
-  activeTab = signal<'audit' | 'dockerfile' | 'cicd' | 'visualizer'>('audit');
-  viewMode = signal<'builder' | 'admin'>('builder');
-  uiMode = signal<'classic' | 'modern'>('classic');
+    // App state
 
-  // AI suggestion state
-  aiSuggestion = signal<string>('');
-  isGeneratingSuggestion = signal<boolean>(false);
+    activeTab = signal<'audit' | 'dockerfile' | 'cicd' | 'visualizer'>('audit');
+
+    viewMode = signal<'builder' | 'admin'>('builder');
+
+    uiMode = signal<'classic' | 'modern'>('classic');
+
   
-  // Available options from config service
+
+    // Available options from config service
   baseOsOptions = this.configService.baseOs;
   techStackOptions = this.configService.techStacks;
   packageOptions = this.configService.packages;
@@ -188,16 +187,5 @@ export class AppComponent {
     URL.revokeObjectURL(url);
   }
 
-  async generateAiSuggestion(): Promise<void> {
-    this.isGeneratingSuggestion.set(true);
-    this.aiSuggestion.set('');
-    try {
-      const suggestion = await this.geminiService.getSecurityRecommendations(this.config());
-      this.aiSuggestion.set(suggestion);
-    } catch (error) {
-      this.aiSuggestion.set('Failed to generate suggestions.');
-    } finally {
-      this.isGeneratingSuggestion.set(false);
-    }
-  }
+
 }

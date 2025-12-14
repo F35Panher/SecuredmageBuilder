@@ -121,3 +121,5 @@ securityRules:
     message: 'Potential hardcoded secret found'
     reason: 'Do not store secrets in environment variables. Use a secret management tool.'
     deduction: 40
+
+aiSuggestionsEnabled: true

@@ -1,6 +1,18 @@
 <div class="p-8 overflow-y-auto h-full space-y-8">
   <h1 class="text-3xl font-bold text-slate-100 border-b border-slate-800 pb-4">Admin Configuration</h1>
 
+  <!-- AI Feature Management -->
+  <div class="bg-slate-900 rounded-lg border border-slate-800">
+    <h2 class="text-xl font-semibold text-blue-400 p-4 border-b border-slate-800">AI Feature Management</h2>
+    <div class="p-4 flex justify-between items-center">
+      <p class="text-slate-300">Enable AI Suggestions</p>
+      <label class="relative inline-flex items-center cursor-pointer">
+        <input type="checkbox" [checked]="configService.aiSuggestionsEnabled()" (change)="configService.setAiSuggestionsEnabled($event.target.checked)" class="sr-only peer">
+        <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+      </label>
+    </div>
+  </div>
+
   <!-- Generic Management Card for Packages -->
   <ng-template #selectableItemCard let-title="title" let-listName="listName" let-items="items">
     <div class="bg-slate-900 rounded-lg border border-slate-800">
@@ -199,4 +211,22 @@
         <button (click)="addRule()" class="w-full px-4 py-2 mt-2 text-sm font-semibold rounded-md bg-blue-600 hover:bg-blue-500 transition-colors">Add Rule</button>
     </div>
   </div>
+
+  <!-- AI Suggestions -->
+  @if (configService.aiSuggestionsEnabled()) {
+    <div class="bg-slate-900 rounded-lg border border-slate-800">
+      <h2 class="text-xl font-semibold text-blue-400 p-4 border-b border-slate-800">AI Security Advisor</h2>
+      <div class="p-4">
+        <button (click)="generateAiSuggestion()" [disabled]="isGeneratingSuggestion()" class="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 disabled:cursor-not-allowed text-white text-sm font-semibold py-2 px-4 rounded-md transition-colors">
+          {{ isGeneratingSuggestion() ? 'Thinking...' : 'Get AI Suggestions' }}
+        </button>
+        @if(aiSuggestion()) {
+          <div class="text-sm text-slate-400 mt-4 p-3 bg-slate-800/50 rounded-md border border-slate-700/50">
+            <h3 class="font-semibold text-slate-300 mb-2">Recommendations</h3>
+            <p class="whitespace-pre-wrap">{{ aiSuggestion() }}</p>
+          </div>
+        }
+      </div>
+    </div>
+  }
 </div>
