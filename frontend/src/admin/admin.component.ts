@@ -21,6 +21,8 @@ export class AdminComponent {
   // AI suggestion state
   aiSuggestion = signal<string>('');
   isGeneratingSuggestion = signal<boolean>(false);
+  apiKey = signal<string>('');
+  saveStatus = signal<'success' | 'error' | null>(null);
 
   newSelectableItem = signal<SelectableItem>({ id: '', name: '' });
   newBaseImage = signal<BaseImage>({ id: '', name: '', version: '', source: '', securityLevel: 'Standard' });
@@ -124,6 +126,27 @@ export class AdminComponent {
         deduction: 10,
         techStack: 'all'
       });
+    }
+  }
+
+  async saveApiKey(): Promise<void> {
+    this.saveStatus.set(null);
+    try {
+      const response = await fetch('/api/api-key', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ apiKey: this.apiKey() })
+      });
+
+      if (response.ok) {
+        this.saveStatus.set('success');
+        this.geminiService.reset(); // Invalidate cached client
+        await this.configService.checkApiKeyExists(); // Update global state
+      } else {
+        this.saveStatus.set('error');
+      }
+    } catch (e) {
+      this.saveStatus.set('error');
     }
   }
 

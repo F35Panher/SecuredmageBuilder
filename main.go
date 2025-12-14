@@ -96,6 +96,49 @@ func configHandler(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, "config.yaml")
 }
 
+const apiKeyFile = ".api_key"
+
+// apiKeyExistsHandler checks if the API key file exists.
+func apiKeyExistsHandler(w http.ResponseWriter, r *http.Request) {
+	_, err := os.Stat(apiKeyFile)
+	exists := !os.IsNotExist(err)
+	json.NewEncoder(w).Encode(map[string]bool{"exists": exists})
+}
+
+// getApiKeyHandler reads the API key from the file and returns it.
+func getApiKeyHandler(w http.ResponseWriter, r *http.Request) {
+	if _, err := os.Stat(apiKeyFile); os.IsNotExist(err) {
+		writeJSONError(w, "API key not set", http.StatusNotFound)
+		return
+	}
+	key, err := os.ReadFile(apiKeyFile)
+	if err != nil {
+		writeJSONError(w, "Failed to read API key", http.StatusInternalServerError)
+		return
+	}
+	json.NewEncoder(w).Encode(map[string]string{"apiKey": string(key)})
+}
+
+// saveApiKeyHandler saves the API key to a file.
+func saveApiKeyHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeJSONError(w, "Only POST method is allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var payload struct {
+		ApiKey string `json:"apiKey"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		writeJSONError(w, "Invalid JSON format", http.StatusBadRequest)
+		return
+	}
+	if err := os.WriteFile(apiKeyFile, []byte(payload.ApiKey), 0600); err != nil {
+		writeJSONError(w, "Failed to save API key", http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}
+
 func main() {
 	// Set up structured logging as the default.
 	slog.SetDefault(logger)
@@ -106,6 +149,9 @@ func main() {
 	mux.Handle("/generate", loggingMiddleware(http.HandlerFunc(generateHandler)))
 	mux.Handle("/healthz", loggingMiddleware(http.HandlerFunc(healthCheckHandler)))
 	mux.Handle("/config.yaml", loggingMiddleware(http.HandlerFunc(configHandler)))
+	mux.Handle("/api/api-key-exists", loggingMiddleware(http.HandlerFunc(apiKeyExistsHandler)))
+	mux.Handle("/api/gemini-key", loggingMiddleware(http.HandlerFunc(getApiKeyHandler)))
+	mux.Handle("/api/api-key", loggingMiddleware(http.HandlerFunc(saveApiKeyHandler)))
 
 	// This file server will handle all non-API requests. It serves files from the 'static'
 	// directory. It will automatically serve 'index.html' for the root path "/" and

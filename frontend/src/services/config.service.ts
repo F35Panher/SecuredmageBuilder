@@ -12,9 +12,23 @@ export class ConfigService {
   packages = signal<SelectableItem[]>([]);
   securityRules = signal<SecurityRule[]>([]);
   aiSuggestionsEnabled = signal<boolean>(true);
+  apiKeyIsSet = signal<boolean>(false);
 
   constructor() {
     this.loadInitialConfig();
+    this.checkApiKeyExists();
+  }
+
+  async checkApiKeyExists(): Promise<void> {
+    try {
+      const response = await fetch('/api/api-key-exists');
+      if (response.ok) {
+        const data = await response.json();
+        this.apiKeyIsSet.set(data.exists);
+      }
+    } catch (e) {
+      this.apiKeyIsSet.set(false);
+    }
   }
 
   private async loadInitialConfig(): Promise<void> {

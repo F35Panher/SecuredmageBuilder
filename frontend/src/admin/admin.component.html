@@ -13,6 +13,23 @@
     </div>
   </div>
 
+  <!-- API Key Management -->
+  <div class="bg-slate-900 rounded-lg border border-slate-800">
+    <h2 class="text-xl font-semibold text-blue-400 p-4 border-b border-slate-800">API Key Management</h2>
+    <div class="p-4 space-y-3">
+      <p class="text-sm text-slate-400">The Gemini API key is stored securely on the server and is not exposed in the frontend code.</p>
+      <div class="flex gap-2">
+        <input type="password" [(ngModel)]="apiKey" placeholder="Enter your Gemini API Key" class="flex-grow bg-slate-800 border border-slate-700 rounded-md px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500">
+        <button (click)="saveApiKey()" [disabled]="!apiKey" class="px-4 py-2 text-sm font-semibold rounded-md bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 transition-colors">Save Key</button>
+      </div>
+       @if (saveStatus()) {
+        <p class="text-sm" [class]="saveStatus() === 'success' ? 'text-green-400' : 'text-red-400'">
+          {{ saveStatus() === 'success' ? 'API Key saved successfully.' : 'Failed to save API Key.' }}
+        </p>
+      }
+    </div>
+  </div>
+
   <!-- Generic Management Card for Packages -->
   <ng-template #selectableItemCard let-title="title" let-listName="listName" let-items="items">
     <div class="bg-slate-900 rounded-lg border border-slate-800">
@@ -213,7 +230,7 @@
   </div>
 
   <!-- AI Suggestions -->
-  @if (configService.aiSuggestionsEnabled()) {
+  @if (configService.aiSuggestionsEnabled() && configService.apiKeyIsSet()) {
     <div class="bg-slate-900 rounded-lg border border-slate-800">
       <h2 class="text-xl font-semibold text-blue-400 p-4 border-b border-slate-800">AI Security Advisor</h2>
       <div class="p-4">
