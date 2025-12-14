@@ -1,0 +1,449 @@
+<div class="flex flex-col h-screen">
+  <!-- Header -->
+  <header class="flex items-center justify-between p-4 border-b border-slate-800 bg-slate-900/50 backdrop-blur-sm sticky top-0 z-10">
+    <div class="flex items-center">
+      <svg class="w-8 h-8 text-blue-400 mr-3" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+      <h1 class="text-2xl font-bold text-slate-100">Docker Image Builder</h1>
+    </div>
+    <div class="flex items-center gap-4">
+       <button (click)="uiMode.set(uiMode() === 'classic' ? 'modern' : 'classic')" class="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md bg-slate-800 hover:bg-slate-700 transition-colors">
+        @if(uiMode() === 'classic') {
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          <span>Modern View</span>
+        } @else {
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+          <span>Classic View</span>
+        }
+      </button>
+      <button (click)="viewMode.set(viewMode() === 'builder' ? 'admin' : 'builder')" class="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md bg-slate-800 hover:bg-slate-700 transition-colors">
+        @if(viewMode() === 'builder') {
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-4.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.44.25a2 2 0 0 1-2 1.73V11a2 2 0 0 1 .36 1.14l.44.25a2 2 0 0 1 1 1.73V16a2 2 0 0 0 2 2h4.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.44-.25a2 2 0 0 1 2-1.73V9a2 2 0 0 1-.36-1.14l-.44-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+          <span>Admin Panel</span>
+        } @else {
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="m3.27 6.96 8.74 5.05 8.74-5.05"/><path d="m12 22.08-8.74-5.05"/><path d="M12 12v10.08"/><path d="m20.73 6.96-8.74 5.05"/></svg>
+          <span>Builder</span>
+        }
+      </button>
+    </div>
+  </header>
+
+  @if (viewMode() === 'builder') {
+    
+    <!-- CLASSIC VIEW -->
+    @if (uiMode() === 'classic') {
+      <div class="flex flex-1 overflow-hidden">
+        <!-- Sidebar: Configuration Wizard -->
+        <aside class="w-full max-w-sm p-6 overflow-y-auto bg-slate-900 border-r border-slate-800 space-y-8">
+          <!-- Base OS -->
+          <div>
+            <h2 class="text-lg font-semibold text-blue-400 mb-3">Base OS</h2>
+            <div class="space-y-2">
+              @for (os of baseOsOptions(); track os.id) {
+                <label class="flex items-center p-3 rounded-lg cursor-pointer transition-colors" [class]="config().baseOs === os.id ? 'bg-blue-600/20 border border-blue-500' : 'bg-slate-800/50 hover:bg-slate-700/50 border border-transparent'">
+                  <input type="radio" name="baseOs" [value]="os.id" [checked]="config().baseOs === os.id" (change)="setBaseOs(os.id)" class="hidden"/>
+                  <div class="flex justify-between items-center w-full">
+                    <span class="font-medium text-slate-200">{{ os.name }}</span>
+                    <span class="text-xs bg-slate-700 text-slate-400 px-2 py-0.5 rounded-full">{{ os.version }}</span>
+                  </div>
+                </label>
+              }
+            </div>
+          </div>
+
+          <!-- Tech Stack -->
+          <div>
+            <h2 class="text-lg font-semibold text-blue-400 mb-3">Technology Stack</h2>
+            <div class="space-y-3">
+              @for (group of techStackGroups(); track group.techId) {
+                <div class="p-3 bg-slate-800/50 rounded-lg">
+                  <div class="flex items-center justify-between">
+                    <label class="flex items-center cursor-pointer">
+                      <input type="checkbox"
+                        [checked]="isTechStackSelected(group.techId)"
+                        (change)="toggleTechStackGroup(group.techId, group.versions)"
+                        class="w-4 h-4 rounded bg-slate-700 border-slate-600 text-blue-500 focus:ring-blue-600"/>
+                      <span class="ml-3 text-slate-200 font-medium">{{ group.name }}</span>
+                    </label>
+                    @if(isTechStackSelected(group.techId)) {
+                      <select [(ngModel)]="selectedTechStack()[group.techId]" (ngModelChange)="setTechStackVersion($event)" class="bg-slate-700 border border-slate-600 rounded-md px-2 py-1 text-xs focus:ring-blue-500 focus:border-blue-500">
+                        @for(version of group.versions; track version.id) {
+                          <option [value]="version.id">v{{version.version}}</option>
+                        }
+                      </select>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+          
+          <!-- System Packages -->
+          <div>
+            <h2 class="text-lg font-semibold text-blue-400 mb-3">System Packages</h2>
+            
+            <!-- Selected Packages -->
+            @if(selectedPackages().length > 0) {
+              <div class="space-y-2 mb-4">
+                @for (pkg of selectedPackages(); track pkg.id) {
+                  <div class="flex items-center justify-between p-2 pl-3 bg-slate-800/50 rounded-lg">
+                    <div class="flex items-center gap-3">
+                      <span class="text-slate-200">{{ pkg.name }}</span>
+                      @if(pkg.severity) {
+                        <span class="px-2 py-0.5 text-xs rounded-full"
+                          [class.bg-red-500/30]="pkg.severity === 'Critical' || pkg.severity === 'High'"
+                          [class.text-red-300]="pkg.severity === 'Critical'"
+                          [class.text-red-400]="pkg.severity === 'High'"
+                          [class.bg-yellow-500/30]="pkg.severity === 'Medium'"
+                          [class.text-yellow-300]="pkg.severity === 'Medium'"
+                          [class.bg-green-500/30]="pkg.severity === 'Low'"
+                          [class.text-green-300]="pkg.severity === 'Low'">{{ pkg.severity }}</span>
+                      }
+                    </div>
+                    <button (click)="removePackage(pkg.id)" class="p-1 text-slate-400 hover:text-red-400 transition-colors">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                  </div>
+                }
+              </div>
+            } @else {
+              <p class="text-sm text-slate-500 text-center py-2 bg-slate-800/30 rounded-lg mb-4">No packages selected.</p>
+            }
+
+            <!-- Available Packages -->
+            <h3 class="text-sm font-semibold text-slate-400 mb-2">Available to add</h3>
+            <div class="space-y-2">
+              @for (pkg of availablePackages(); track pkg.id) {
+                <div class="flex items-center justify-between p-2 pl-3 bg-slate-800/50 rounded-lg">
+                  <div class="flex items-center gap-3">
+                    <span class="text-slate-200">{{ pkg.name }}</span>
+                    @if(pkg.severity) {
+                      <span class="px-2 py-0.5 text-xs rounded-full"
+                          [class.bg-red-500/30]="pkg.severity === 'Critical' || pkg.severity === 'High'"
+                          [class.text-red-300]="pkg.severity === 'Critical'"
+                          [class.text-red-400]="pkg.severity === 'High'"
+                          [class.bg-yellow-500/30]="pkg.severity === 'Medium'"
+                          [class.text-yellow-300]="pkg.severity === 'Medium'"
+                          [class.bg-green-500/30]="pkg.severity === 'Low'"
+                          [class.text-green-300]="pkg.severity === 'Low'">{{ pkg.severity }}</span>
+                    }
+                  </div>
+                  <button (click)="addPackage(pkg.id)" class="p-1 text-slate-400 hover:text-green-400 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  </button>
+                </div>
+              }
+            </div>
+          </div>
+
+          <!-- Ports -->
+          <div>
+            <h2 class="text-lg font-semibold text-blue-400 mb-3">Exposed Ports</h2>
+            <div class="space-y-2">
+              @for (port of config().ports; track $index) {
+                <div class="flex items-center gap-2">
+                  <input type="number" [value]="port" (input)="updatePort($index, $event.target.value)" placeholder="e.g. 8080" class="flex-grow bg-slate-800 border border-slate-700 rounded-md px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500"/>
+                  <button (click)="removePort($index)" class="p-2 text-slate-400 hover:text-red-400 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                  </button>
+                </div>
+              }
+              <button (click)="addPort()" class="w-full text-sm text-blue-400 hover:text-blue-300 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 transition-colors">+ Add Port</button>
+            </div>
+          </div>
+
+          <!-- Environment Variables -->
+          <div>
+            <h2 class="text-lg font-semibold text-blue-400 mb-3">Environment Variables</h2>
+            <div class="space-y-2">
+              @for (env of config().envVars; track $index) {
+                <div class="flex items-center gap-2">
+                  <input type="text" placeholder="KEY" [value]="env.key" (input)="updateEnvVar($index, 'key', $event.target.value)" class="w-1/2 bg-slate-800 border border-slate-700 rounded-md px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500"/>
+                  <input type="text" placeholder="VALUE" [value]="env.value" (input)="updateEnvVar($index, 'value', $event.target.value)" class="w-1/2 bg-slate-800 border border-slate-700 rounded-md px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500"/>
+                  <button (click)="removeEnvVar($index)" class="p-2 text-slate-400 hover:text-red-400 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                  </button>
+                </div>
+              }
+              <button (click)="addEnvVar()" class="w-full text-sm text-blue-400 hover:text-blue-300 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 transition-colors">+ Add Variable</button>
+            </div>
+          </div>
+
+          <!-- AI Suggestions -->
+          <div class="border-t border-slate-700 pt-6 mt-6">
+              <button (click)="generateAiSuggestion()" [disabled]="isGeneratingSuggestion()" class="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 disabled:cursor-not-allowed text-white text-sm font-semibold py-2 px-4 rounded-md transition-colors">
+                {{ isGeneratingSuggestion() ? 'Thinking...' : 'Get AI Suggestions' }}
+              </button>
+              @if(aiSuggestion()) {
+                <div class="text-sm text-slate-400 mt-4 p-3 bg-slate-800/50 rounded-md border border-slate-700/50">
+                  <h3 class="font-semibold text-slate-300 mb-2">Recommendations</h3>
+                  <p class="whitespace-pre-wrap">{{ aiSuggestion() }}</p>
+                </div>
+              }
+          </div>
+        </aside>
+
+        <!-- Main Content: Previews -->
+        <main class="flex-1 flex flex-col bg-slate-950/70 overflow-hidden">
+          <!-- Tabs -->
+          <div class="flex border-b border-slate-800 px-6">
+            <button (click)="activeTab.set('audit')" class="px-4 py-3 text-sm font-medium transition-colors" [class]="activeTab() === 'audit' ? 'text-blue-400 border-b-2 border-blue-400' : 'text-slate-400 hover:text-slate-200'">Security Audit</button>
+            <button (click)="activeTab.set('visualizer')" class="px-4 py-3 text-sm font-medium transition-colors" [class]="activeTab() === 'visualizer' ? 'text-blue-400 border-b-2 border-blue-400' : 'text-slate-400 hover:text-slate-200'">Visualizer</button>
+            <button (click)="activeTab.set('dockerfile')" class="px-4 py-3 text-sm font-medium transition-colors" [class]="activeTab() === 'dockerfile' ? 'text-blue-400 border-b-2 border-blue-400' : 'text-slate-400 hover:text-slate-200'">Dockerfile</button>
+            <button (click)="activeTab.set('cicd')" class="px-4 py-3 text-sm font-medium transition-colors" [class]="activeTab() === 'cicd' ? 'text-blue-400 border-b-2 border-blue-400' : 'text-slate-400 hover:text-slate-200'">CI/CD Pipeline</button>
+          </div>
+
+          <div class="flex-1 p-8 overflow-y-auto">
+            <!-- Security Audit View -->
+            @if (activeTab() === 'audit') {
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="md:col-span-1 flex flex-col items-center justify-center p-6 bg-slate-900 rounded-lg border border-slate-800">
+                  <h3 class="text-lg font-semibold text-slate-300 mb-4">Security Score</h3>
+                  <div class="relative w-32 h-32">
+                    @let score = auditReport().score;
+                    @let scoreColor = score > 80 ? 'text-green-400' : score > 50 ? 'text-yellow-400' : 'text-red-400';
+                    <svg class="w-full h-full" viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg">
+                      <path class="stroke-slate-700" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke-width="3"/>
+                      <path class="transition-all duration-500" [class]="scoreColor" [attr.stroke-dasharray]="score + ', 100'" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke-width="3" stroke-linecap="round"/>
+                    </svg>
+                    <div class="absolute inset-0 flex items-center justify-center">
+                      <span class="text-4xl font-bold" [class]="scoreColor">{{ score }}</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="md:col-span-2 p-6 bg-slate-900 rounded-lg border border-slate-800">
+                  <h3 class="text-lg font-semibold text-slate-300 mb-4">Audit Findings</h3>
+                  @if (auditReport().results.length > 0) {
+                    <ul class="space-y-3">
+                      @for (finding of auditReport().results; track $index) {
+                        <li class="flex items-start">
+                          @if (finding.severity === 'Critical' || finding.severity === 'High') {
+                          <svg class="w-5 h-5 text-red-400 mr-3 mt-0.5 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                          } @else {
+                            <svg class="w-5 h-5 text-yellow-400 mr-3 mt-0.5 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                          }
+                          <div>
+                            <p class="font-medium text-slate-200">{{ finding.message }}</p>
+                            <p class="text-sm text-slate-400">{{ finding.reason }}</p>
+                          </div>
+                        </li>
+                      }
+                    </ul>
+                  } @else {
+                    <div class="flex flex-col items-center justify-center text-center h-full text-slate-500">
+                      <svg class="w-12 h-12 text-green-500 mb-2" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                      <p class="font-semibold">No security issues found!</p>
+                      <p class="text-sm">Your configuration follows best practices.</p>
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+
+            <!-- Visualizer View -->
+            @if(activeTab() === 'visualizer') {
+              <app-docker-visualizer [dockerfileContent]="dockerfileContent()"></app-docker-visualizer>
+            }
+
+            <!-- Dockerfile & CI/CD Views -->
+            @if (activeTab() === 'dockerfile' || activeTab() === 'cicd') {
+              @let content = activeTab() === 'dockerfile' ? dockerfileContent() : ciCdContent();
+              @let filename = activeTab() === 'dockerfile' ? 'Dockerfile' : 'main.yml';
+              <div class="relative h-full">
+                <div class="absolute top-0 right-0 mt-2 mr-2 flex items-center gap-2 z-10">
+                  <button (click)="copyToClipboard(content)" class="bg-slate-700 text-slate-300 hover:bg-slate-600 px-3 py-1.5 text-xs font-medium rounded-md transition-colors flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                    Copy
+                  </button>
+                   <button (click)="downloadFile(content, filename)" class="bg-slate-700 text-slate-300 hover:bg-slate-600 px-3 py-1.5 text-xs font-medium rounded-md transition-colors flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    Download
+                  </button>
+                </div>
+                <pre class="bg-slate-900 p-4 rounded-lg border border-slate-800 h-full overflow-auto"><code class="text-sm font-mono whitespace-pre-wrap">{{ content }}</code></pre>
+              </div>
+            }
+          </div>
+        </main>
+      </div>
+    } @else {
+      <!-- MODERN VIEW -->
+      <div class="grid grid-cols-1 lg:grid-cols-[minmax(400px,1.2fr)_1.5fr_2fr] gap-6 p-6 flex-1 overflow-hidden">
+        
+        <!-- Column 1: Inputs -->
+        <aside class="flex flex-col space-y-6 overflow-y-auto pr-4">
+          <!-- Base Image -->
+          <div>
+            <label for="baseOsSelect" class="text-lg font-semibold text-blue-400 mb-3 block">Base Image</label>
+            <select id="baseOsSelect" (change)="setBaseOs($event.target.value)" class="w-full bg-slate-800 border border-slate-700 rounded-md px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500">
+              @for(os of baseOsOptions(); track os.id) {
+                <option [value]="os.id" [selected]="config().baseOs === os.id">{{ os.name }} ({{ os.version }})</option>
+              }
+            </select>
+          </div>
+
+          <!-- App Stack -->
+          <div>
+            <h2 class="text-lg font-semibold text-blue-400 mb-3">App Stack</h2>
+            <div class="space-y-3">
+              @for (group of techStackGroups(); track group.techId) {
+                <div class="p-2 rounded-lg transition-colors" [class]="isTechStackSelected(group.techId) ? 'bg-blue-600/20 border border-blue-500' : 'bg-slate-800/50 border border-transparent'">
+                  <div class="flex items-center justify-between">
+                    <label class="flex items-center cursor-pointer text-sm">
+                      <input type="checkbox"
+                        [checked]="isTechStackSelected(group.techId)"
+                        (change)="toggleTechStackGroup(group.techId, group.versions)"
+                        class="w-4 h-4 rounded bg-slate-700 border-slate-600 text-blue-500 focus:ring-blue-500 focus:ring-offset-0"/>
+                      <span class="ml-2 font-medium text-slate-200">{{ group.name }}</span>
+                    </label>
+                    @if(isTechStackSelected(group.techId)) {
+                      <select (change)="setTechStackVersion(group.techId, $event.target.value)" [value]="getSelectedTechVersion(group.techId)" class="bg-slate-700/50 border border-slate-600 rounded-md px-2 py-1 text-xs focus:ring-blue-500 focus:border-blue-500">
+                        @for(version of group.versions; track version.id) {
+                          <option [value]="version.id">v{{version.version}}</option>
+                        }
+                      </select>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+
+          <!-- System Packages -->
+          <div>
+            <h2 class="text-lg font-semibold text-blue-400 mb-3">System Packages</h2>
+             @if(selectedPackages().length > 0) {
+              <div class="space-y-2 mb-4">
+                @for (pkg of selectedPackages(); track pkg.id) {
+                  <div class="flex items-center justify-between p-2 pl-3 bg-slate-800/50 rounded-lg">
+                    <div class="flex items-center gap-3">
+                      <span class="text-slate-200">{{ pkg.name }}</span>
+                      @if(pkg.severity) {
+                        <span class="px-2 py-0.5 text-xs rounded-full"
+                          [class.bg-red-500/30]="pkg.severity === 'Critical' || pkg.severity === 'High'"
+                          [class.text-red-300]="pkg.severity === 'Critical'"
+                          [class.text-red-400]="pkg.severity === 'High'"
+                          [class.bg-yellow-500/30]="pkg.severity === 'Medium'"
+                          [class.text-yellow-300]="pkg.severity === 'Medium'"
+                          [class.bg-green-500/30]="pkg.severity === 'Low'"
+                          [class.text-green-300]="pkg.severity === 'Low'">{{ pkg.severity }}</span>
+                      }
+                    </div>
+                    <button (click)="removePackage(pkg.id)" class="p-1 text-slate-400 hover:text-red-400 transition-colors">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                  </div>
+                }
+              </div>
+            }
+            <h3 class="text-sm font-semibold text-slate-400 mb-2">Available to add</h3>
+            <div class="space-y-2 max-h-40 overflow-y-auto pr-1">
+              @for (pkg of availablePackages(); track pkg.id) {
+                <div class="flex items-center justify-between p-2 pl-3 bg-slate-800/50 rounded-lg">
+                  <div class="flex items-center gap-3">
+                    <span class="text-slate-200">{{ pkg.name }}</span>
+                    @if(pkg.severity) {
+                      <span class="px-2 py-0.5 text-xs rounded-full"
+                          [class.bg-red-500/30]="pkg.severity === 'Critical' || pkg.severity === 'High'"
+                          [class.text-red-300]="pkg.severity === 'Critical'"
+                          [class.text-red-400]="pkg.severity === 'High'"
+                          [class.bg-yellow-500/30]="pkg.severity === 'Medium'"
+                          [class.text-yellow-300]="pkg.severity === 'Medium'"
+                          [class.bg-green-500/30]="pkg.severity === 'Low'"
+                          [class.text-green-300]="pkg.severity === 'Low'">{{ pkg.severity }}</span>
+                    }
+                  </div>
+                  <button (click)="addPackage(pkg.id)" class="p-1 text-slate-400 hover:text-green-400 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  </button>
+                </div>
+              }
+            </div>
+          </div>
+          
+           <!-- AI Suggestions -->
+          <div class="border-t border-slate-700 pt-6 mt-auto">
+              <button (click)="generateAiSuggestion()" [disabled]="isGeneratingSuggestion()" class="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 disabled:cursor-not-allowed text-white text-sm font-semibold py-3 px-4 rounded-md transition-colors">
+                {{ isGeneratingSuggestion() ? 'Analyzing...' : 'Generate & Review' }}
+              </button>
+              @if(aiSuggestion()) {
+                <div class="text-sm text-slate-400 mt-4 p-3 bg-slate-800/50 rounded-md border border-slate-700/50">
+                  <h3 class="font-semibold text-slate-300 mb-2">Recommendations</h3>
+                  <p class="whitespace-pre-wrap">{{ aiSuggestion() }}</p>
+                </div>
+              }
+          </div>
+        </aside>
+
+        <!-- Column 2: Audit & Score -->
+        <div class="flex flex-col space-y-6 overflow-y-auto">
+            <!-- Score Card -->
+            <div class="bg-slate-900 rounded-lg border border-slate-800 p-6">
+                <h3 class="text-lg font-semibold text-slate-300 mb-4 text-center">Security Score</h3>
+                <div class="flex items-center justify-center">
+                <div class="relative w-32 h-32">
+                    @let score = auditReport().score;
+                    @let scoreColor = score > 80 ? 'text-green-400' : score > 50 ? 'text-yellow-400' : 'text-red-400';
+                    <svg class="w-full h-full" viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg">
+                    <path class="stroke-slate-700" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke-width="3"/>
+                    <path class="transition-all duration-500" [class]="scoreColor" [attr.stroke-dasharray]="score + ', 100'" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke-width="3" stroke-linecap="round"/>
+                    </svg>
+                    <div class="absolute inset-0 flex items-center justify-center">
+                    <span class="text-4xl font-bold" [class]="scoreColor">{{ score }}</span>
+                    </div>
+                </div>
+                </div>
+            </div>
+
+            <!-- Audit Findings Card -->
+            <div class="bg-slate-900 rounded-lg border border-slate-800 p-6 flex-1">
+                <h3 class="text-lg font-semibold text-slate-300 mb-4">Audit Findings</h3>
+                @if (auditReport().results.length > 0) {
+                <ul class="space-y-3">
+                    @for (finding of auditReport().results; track $index) {
+                    <li class="flex items-start">
+                        @if (finding.severity === 'Critical' || finding.severity === 'High') {
+                        <svg class="w-5 h-5 text-red-400 mr-3 mt-0.5 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                        } @else {
+                        <svg class="w-5 h-5 text-yellow-400 mr-3 mt-0.5 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                        }
+                        <div>
+                        <p class="font-medium text-slate-200">{{ finding.message }}</p>
+                        <p class="text-sm text-slate-400">{{ finding.reason }}</p>
+                        </div>
+                    </li>
+                    }
+                </ul>
+                } @else {
+                <div class="flex flex-col items-center justify-center text-center text-slate-500 py-4 h-full">
+                    <svg class="w-10 h-10 text-green-500 mb-2" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                    <p class="font-semibold">No security issues found!</p>
+                </div>
+                }
+            </div>
+        </div>
+
+        <!-- Column 3: Dockerfile -->
+        <main class="flex flex-col min-h-0">
+            <div class="flex-1 flex flex-col min-h-0 bg-slate-900 rounded-lg border border-slate-800">
+                <h2 class="text-lg font-semibold text-blue-400 p-4 border-b border-slate-800">Generated Dockerfile</h2>
+                <div class="relative flex-1">
+                   <div class="absolute top-0 right-0 mt-2 mr-2 flex items-center gap-2 z-10">
+                     <button (click)="copyToClipboard(dockerfileContent())" class="bg-slate-700 text-slate-300 hover:bg-slate-600 px-3 py-1.5 text-xs font-medium rounded-md transition-colors flex items-center gap-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                      Copy
+                    </button>
+                     <button (click)="downloadFile(dockerfileContent(), 'Dockerfile')" class="bg-slate-700 text-slate-300 hover:bg-slate-600 px-3 py-1.5 text-xs font-medium rounded-md transition-colors flex items-center gap-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                      Download
+                    </button>
+                  </div>
+                    <pre class="p-4 h-full overflow-auto"><code class="text-sm font-mono whitespace-pre-wrap">{{ dockerfileContent() }}</code></pre>
+                </div>
+            </div>
+        </main>
+      </div>
+    }
+  } @else {
+    <app-admin />
+  }
+</div>
