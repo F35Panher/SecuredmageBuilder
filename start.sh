@@ -34,6 +34,9 @@ echo "INFO: Compiling the Go application..."
 
 # The 'go build' command compiles the source code into a single executable binary.
 # -o specifies the output file name.
+# Added the following --- go mod download and go mod verify
+go mod download
+go mod verify
 go build -o secured-image-builder .
 
 echo "INFO: Build successful."

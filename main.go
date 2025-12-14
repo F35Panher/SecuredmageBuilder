@@ -10,7 +10,10 @@ import (
 	"syscall"
 	"time"
 
+	// added based on cgpt
+
 	"securedimagebuilder/generator"
+	// "github.com/vtaparia/securedimagebuilder/generator"
 )
 
 var logger = slog.New(slog.NewJSONHandler(os.Stdout, nil))
@@ -88,6 +91,11 @@ func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 }
 
+// configHandler serves the config.yaml file.
+func configHandler(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, "config.yaml")
+}
+
 func main() {
 	// Set up structured logging as the default.
 	slog.SetDefault(logger)
@@ -97,6 +105,7 @@ func main() {
 	// API handlers
 	mux.Handle("/generate", loggingMiddleware(http.HandlerFunc(generateHandler)))
 	mux.Handle("/healthz", loggingMiddleware(http.HandlerFunc(healthCheckHandler)))
+	mux.Handle("/config.yaml", loggingMiddleware(http.HandlerFunc(configHandler)))
 
 	// This file server will handle all non-API requests. It serves files from the 'static'
 	// directory. It will automatically serve 'index.html' for the root path "/" and
