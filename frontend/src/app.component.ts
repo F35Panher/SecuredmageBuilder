@@ -167,10 +167,13 @@ export class AppComponent {
     this.config.update(c => ({ ...c, envVars: c.envVars.filter((_, i) => i !== index) }));
   }
   
+  copied = signal(false);
+
   async copyToClipboard(text: string): Promise<void> {
     try {
       await navigator.clipboard.writeText(text);
-      // Maybe show a toast notification here in a real app
+      this.copied.set(true);
+      setTimeout(() => this.copied.set(false), 2000);
     } catch (err) {
       console.error('Failed to copy text: ', err);
     }
