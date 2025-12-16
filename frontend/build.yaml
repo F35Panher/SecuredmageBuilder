@@ -1,0 +1,436 @@
+openapi: 3.0.0
+info:
+  title: Docker Image Builder API
+  description: Backend API for the Docker Image Builder application. It handles configuration persistence and secure access to the Gemini API.
+  version: "1.0.0"
+
+servers:
+  - url: /api
+    description: API server
+
+tags:
+  - name: Configuration
+    description: Endpoints for managing the application's configurable options (base images, packages, rules).
+  - name: AI
+    description: Endpoints for interacting with the Gemini AI model.
+
+paths:
+  /config:
+    get:
+      tags:
+        - Configuration
+      summary: Retrieve the entire application configuration
+      description: Fetches all lists of base OS images, tech stacks, packages, and security rules.
+      operationId: getFullConfig
+      responses:
+        '200':
+          description: Successful retrieval of configuration.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FullConfig'
+              example:
+                baseOs:
+                  - id: 'wolfi'
+                    name: 'Chainguard Wolfi'
+                    version: 'latest'
+                    source: 'cgr.dev/chainguard/wolfi-base'
+                    securityLevel: 'Minimal'
+                  - id: 'distroless'
+                    name: 'Google Distroless'
+                    version: 'latest'
+                    source: 'gcr.io/distroless/static'
+                    securityLevel: 'Minimal'
+                  - id: 'alpine'
+                    name: 'Alpine Linux'
+                    version: 'latest'
+                    source: 'docker.io/library/alpine'
+                    securityLevel: 'Minimal'
+                  - id: 'debian-slim'
+                    name: 'Debian Slim'
+                    version: 'slim'
+                    source: 'docker.io/library/debian'
+                    securityLevel: 'Standard'
+                  - id: 'ubuntu'
+                    name: 'Ubuntu'
+                    version: 'latest'
+                    source: 'docker.io/library/ubuntu'
+                    securityLevel: 'Full'
+                techStacks:
+                  - id: 'nodejs-20'
+                    name: 'Node.js (v20)'
+                  - id: 'nodejs-18'
+                    name: 'Node.js (v18)'
+                  - id: 'python-3.11'
+                    name: 'Python (v3.11)'
+                  - id: 'python-3.10'
+                    name: 'Python (v3.10)'
+                  - id: 'golang-1.22'
+                    name: 'Go (v1.22)'
+                  - id: 'golang-1.21'
+                    name: 'Go (v1.21)'
+                  - id: 'java-17'
+                    name: 'Java (v17)'
+                  - id: 'java-11'
+                    name: 'Java (v11)'
+                packages:
+                  - id: 'git'
+                    name: 'git'
+                  - id: 'curl'
+                    name: 'curl'
+                  - id: 'openssl'
+                    name: 'openssl'
+                  - id: 'sudo'
+                    name: 'sudo (Risky)'
+                  - id: 'telnet'
+                    name: 'telnet (Risky)'
+                  - id: 'netcat'
+                    name: 'netcat (Risky)'
+                securityRules:
+                  - type: 'baseOs'
+                    identifier: 'distroless'
+                    severity: 'Low'
+                    message: 'Distroless Image Selected'
+                    reason: 'Distroless images are secure but require multi-stage builds done right.'
+                    deduction: -5
+                  - type: 'baseOs'
+                    identifier: 'ubuntu'
+                    severity: 'Medium'
+                    message: 'Bloated Base Image'
+                    reason: 'Ubuntu images can be large and have a wider attack surface.'
+                    deduction: 15
+                  - type: 'baseOs'
+                    identifier: 'debian-slim'
+                    severity: 'Low'
+                    message: 'Non-minimal Base Image'
+                    reason: 'Debian Slim is good, but Wolfi/Alpine are more minimal.'
+                    deduction: 5
+                  - type: 'package'
+                    identifier: 'sudo'
+                    severity: 'High'
+                    message: 'Package "sudo" is installed'
+                    reason: 'Using sudo inside a container can enable privilege escalation.'
+                    deduction: 20
+                  - type: 'package'
+                    identifier: 'telnet'
+                    severity: 'Critical'
+                    message: 'Package "telnet" is installed'
+                    reason: 'Telnet is an insecure protocol that transmits data in cleartext.'
+                    deduction: 30
+                  - type: 'package'
+                    identifier: 'netcat'
+                    severity: 'Critical'
+                    message: 'Package "netcat" is installed'
+                    reason: 'netcat can be used for malicious network activities.'
+                    deduction: 25
+                  - type: 'port'
+                    identifier: '22'
+                    severity: 'High'
+                    message: 'Port 22 (SSH) is exposed'
+                    reason: 'Exposing SSH on a container is highly discouraged. Use `docker exec` instead.'
+                    deduction: 25
+                  - type: 'port'
+                    identifier: '23'
+                    severity: 'Critical'
+                    message: 'Port 23 (Telnet) is exposed'
+                    reason: 'Telnet is an insecure protocol and should not be used.'
+                    deduction: 30
+                  - type: 'port'
+                    identifier: '3389'
+                    severity: 'High'
+                    message: 'Port 3389 (RDP) is exposed'
+                    reason: 'Exposing RDP can open the container to brute-force attacks.'
+                    deduction: 20
+                  - type: 'envVar'
+                    identifier: '/_KEY|_SECRET|_PASSWORD|_TOKEN/i'
+                    severity: 'Critical'
+                    message: 'Potential hardcoded secret found'
+                    reason: 'Do not store secrets in environment variables. Use a secret management tool.'
+                    deduction: 40
+  
+  /config/base-images:
+    post:
+      tags:
+        - Configuration
+      summary: Add a new base image
+      operationId: addBaseImage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BaseImage'
+      responses:
+        '201':
+          description: Base image created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseImage'
+
+  /config/base-images/{id}:
+    delete:
+      tags:
+        - Configuration
+      summary: Delete a base image by ID
+      operationId: deleteBaseImage
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Base image deleted successfully.
+
+  /config/tech-stacks:
+    post:
+      tags:
+        - Configuration
+      summary: Add a new tech stack version
+      operationId: addTechStack
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SelectableItem'
+      responses:
+        '201':
+          description: Tech stack created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SelectableItem'
+
+  /config/tech-stacks/{id}:
+    delete:
+      tags:
+        - Configuration
+      summary: Delete a tech stack by ID
+      operationId: deleteTechStack
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Tech stack deleted successfully.
+
+  /config/packages:
+    post:
+      tags:
+        - Configuration
+      summary: Add a new system package
+      operationId: addPackage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SelectableItem'
+      responses:
+        '201':
+          description: Package created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SelectableItem'
+
+  /config/packages/{id}:
+    delete:
+      tags:
+        - Configuration
+      summary: Delete a package by ID
+      operationId: deletePackage
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Package deleted successfully.
+          
+  /config/security-rules:
+    post:
+      tags:
+        - Configuration
+      summary: Add a new security rule
+      operationId: addSecurityRule
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SecurityRule'
+      responses:
+        '201':
+          description: Security rule created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SecurityRule'
+
+  /config/security-rules/{index}:
+    delete:
+      tags:
+        - Configuration
+      summary: Delete a security rule by its index
+      operationId: deleteSecurityRule
+      parameters:
+        - name: index
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Security rule deleted successfully.
+
+  /ai/suggestions:
+    post:
+      tags:
+        - AI
+      summary: Get AI-powered security suggestions
+      description: Sends the user's current container configuration to the backend to get security recommendations from the Gemini API.
+      operationId: getAiSuggestions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContainerConfig'
+      responses:
+        '200':
+          description: Successfully retrieved AI suggestions.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  suggestion:
+                    type: string
+                    example: "* Consider using a more minimal base image like 'wolfi'...\n* Remove the 'netcat' package as it can be used for malicious activities."
+
+components:
+  schemas:
+    SelectableItem:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+    
+    SecurityLevel:
+      type: string
+      enum:
+        - Minimal
+        - Standard
+        - Full
+        
+    BaseImage:
+      allOf:
+        - $ref: '#/components/schemas/SelectableItem'
+        - type: object
+          required:
+            - version
+            - securityLevel
+          properties:
+            version:
+              type: string
+            source:
+              type: string
+            securityLevel:
+              $ref: '#/components/schemas/SecurityLevel'
+
+    EnvVar:
+      type: object
+      properties:
+        key:
+          type: string
+        value:
+          type: string
+          
+    ContainerConfig:
+      type: object
+      properties:
+        baseOs:
+          type: string
+        techStack:
+          type: array
+          items:
+            type: string
+        packages:
+          type: array
+          items:
+            type: string
+        ports:
+          type: array
+          items:
+            type: string
+        envVars:
+          type: array
+          items:
+            $ref: '#/components/schemas/EnvVar'
+        registry:
+          type: string
+          
+    Severity:
+      type: string
+      enum:
+        - Critical
+        - High
+        - Medium
+        - Low
+        
+    SecurityRule:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - package
+            - port
+            - baseOs
+            - envVar
+        identifier:
+          type: string
+        severity:
+          $ref: '#/components/schemas/Severity'
+        message:
+          type: string
+        reason:
+          type: string
+        deduction:
+          type: number
+        techStack:
+          type: string
+          
+    FullConfig:
+      type: object
+      properties:
+        baseOs:
+          type: array
+          items:
+            $ref: '#/components/schemas/BaseImage'
+        techStacks:
+          type: array
+          items:
+            $ref: '#/components/schemas/SelectableItem'
+        packages:
+          type: array
+          items:
+            $ref: '#/components/schemas/SelectableItem'
+        securityRules:
+          type: array
+          items:
+            $ref: '#/components/schemas/SecurityRule'

@@ -1,6 +1,6 @@
-# Secured Container Builder
+# Docker Image Builder
 
-**Secured Container Builder** is a visual tool designed to help developers configure, audit, and generate production-ready Dockerfiles and CI/CD pipelines with a strong focus on security best practices. It provides real-time feedback on configuration choices, helping to create minimal, secure, and efficient container images by default.
+**Docker Image Builder** is a visual tool designed to help developers configure, audit, and generate production-ready Dockerfiles and CI/CD pipelines with a strong focus on security best practices. It provides real-time feedback on configuration choices, helping to create minimal, secure, and efficient container images by default.
 
 ## ✨ Features
 
@@ -42,11 +42,11 @@ You can easily serve the application using the provided `Dockerfile.deploy`. Thi
     ```
 2.  **Build the deployment Docker image:**
     ```bash
-    docker build -t secured-container-builder -f Dockerfile.deploy .
+    docker build -t secure-container-builder -f Dockerfile.deploy .
     ```
 3.  **Run the container:**
     ```bash
-    docker run -d -p 8080:80 secured-container-builder
+    docker run -d -p 8080:80 secure-container-builder
     ```
 The application will now be available at `http://localhost:8080`.
 
@@ -76,7 +76,7 @@ You can deploy the application as a serverless container on services like Google
     ```
 4.  **Deploy to Cloud Run:**
     ```bash
-    gcloud run deploy secured-container-builder \
+    gcloud run deploy secure-container-builder \
       --image YOUR_REGION-docker.pkg.dev/YOUR_PROJECT_ID/secure-builder-repo/app \
       --platform managed \
       --region YOUR_REGION \
