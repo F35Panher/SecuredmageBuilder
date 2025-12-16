@@ -2,8 +2,16 @@
   <!-- Header -->
   <header class="flex items-center justify-between p-4 border-b border-slate-800 bg-slate-900/50 backdrop-blur-sm sticky top-0 z-10">
     <div class="flex items-center">
-      <svg class="w-8 h-8 text-blue-400 mr-3" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
-      <h1 class="text-2xl font-bold text-slate-100">Docker Image Builder</h1>
+      <!-- New Logo -->
+      <svg class="w-8 h-8 text-blue-400 mr-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 2L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-3z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M12 11L15 9.5L12 8L9 9.5L12 11Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M9 9.5V12.5L12 14L15 12.5V9.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <div>
+        <h1 class="text-xl font-bold text-slate-100">Secured Container Builder</h1>
+        <p class="text-xs text-slate-400">Build and deploy with confidence.</p>
+      </div>
     </div>
     <div class="flex items-center gap-4">
        <button (click)="uiMode.set(uiMode() === 'classic' ? 'modern' : 'classic')" class="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md bg-slate-800 hover:bg-slate-700 transition-colors">
@@ -424,4 +432,8 @@
   } @else {
     <app-admin [config]="config()"></app-admin>
   }
+
+  <footer class="text-center p-4 border-t border-slate-800 text-xs text-slate-500">
+    <p>Copyright 2025 Secured Container Builder | Version {{ version }}</p>
+  </footer>
 </div>

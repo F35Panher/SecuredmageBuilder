@@ -23,7 +23,7 @@ RUN go mod download
 
 # Copy the rest of the backend source code.
 COPY . .
-# Build the application as a static binary for Linux
+# Build the application as a static binary for Linux RUN go build
 RUN CGO_ENABLED=0 GOOS=linux go build -o /secured-image-builder .
 
 # ---- Final Stage ----

@@ -11,12 +11,23 @@ export class CodeGeneratorService {
   generateDockerfile(config: ContainerConfig): string {
     const { baseOs, techStack, packages, ports, envVars } = config;
 
-    const baseOsInfo = this.configService.baseOs().find(os => os.id === baseOs);
-    const baseImage = baseOsInfo?.source ? `${baseOsInfo.source}:${baseOsInfo.version}` : 'cgr.dev/chainguard/wolfi-base:latest';
-
     const techSetup = this.getTechSetup(techStack);
-    const isDistroless = baseOs.includes('distroless');
-    const packageInstallCmd = this.getPackageInstallCmd(packages, baseOs);
+    const allPackages = [...packages, ...techSetup.runtimePackages];
+    
+    let baseOsInfo = this.configService.baseOs().find(os => os.id === baseOs);
+    let baseImage = baseOsInfo?.source ? `${baseOsInfo.source}:${baseOsInfo.version}` : 'cgr.dev/chainguard/wolfi-base:latest';
+    let isDistroless = baseOs.includes('distroless');
+    let finalImageWarning = '';
+
+    if (isDistroless && allPackages.length > 0) {
+        finalImageWarning = `# WARNING: Your selected base image is distroless, but your configuration requires
+# packages (${allPackages.join(', ')}).
+# Switching to a compatible non-distroless image (cgr.dev/chainguard/wolfi-base:latest) to support package installation.`;
+        baseImage = 'cgr.dev/chainguard/wolfi-base:latest';
+        isDistroless = false; 
+    }
+
+    const packageInstallCmd = this.getPackageInstallCmd(allPackages, isDistroless ? 'distroless' : baseOs);
 
     // User creation and package installation for non-distroless images
     const setupBlock = isDistroless
@@ -41,8 +52,8 @@ ${techSetup.buildSteps}
       : '';
     
     const copyFromBuilder = techSetup.builderImage
-      ? `# Copy artifacts from the builder stage.
-COPY --from=builder ${techSetup.copyFrom} ${techSetup.copyTo}`
+      ? `# Copy all application artifacts from the builder stage.
+COPY --from=builder /app /app`
       : `# Copy application files.
 # For production, it's better to use a multi-stage build to keep the image small.
 COPY . .`;
@@ -52,6 +63,7 @@ COPY . .`;
 ${builderStage}
 # ---- Final Stage ----
 # This is the final, minimal image that will be deployed.
+${finalImageWarning}
 FROM ${baseImage}
 WORKDIR /app
 
@@ -66,6 +78,7 @@ ${envVars.map(e => e.key && e.value ? `ENV ${e.key}="${e.value}"` : '').filter(B
 ${ports.map(p => p ? `EXPOSE ${p}` : '').filter(Boolean).join('\n')}
 
 # Set entrypoint/command
+# Note: The run command is based on the highest priority tech stack selected.
 CMD ${techSetup.runCommand}
 `.trim().replace(/\n\n+/g, '\n\n');
   }
@@ -180,94 +193,119 @@ jobs:
 
   private getTechSetup(techStackIds: string[]) {
     const priority = ['golang', 'java', 'nodejs', 'python'];
-    let primaryTechId: string | undefined;
+    const selectedTechs = techStackIds.sort((a, b) => {
+        const langA = a.split('-')[0];
+        const langB = b.split('-')[0];
+        return priority.indexOf(langA) - priority.indexOf(langB);
+    });
 
-    for (const lang of priority) {
-        primaryTechId = techStackIds.find(id => id.startsWith(lang));
-        if (primaryTechId) break;
-    }
-
-    if (!primaryTechId) {
+    if (selectedTechs.length === 0) {
         return {
             builderImage: null,
             buildSteps: '',
             copyFrom: '.',
             copyTo: '.',
-            runCommand: '["/bin/sh", "-c", "echo Your app is running!"]'
+            runCommand: '["/bin/sh", "-c", "echo Your app is running!"]',
+            runtimePackages: []
         };
     }
 
-    const [language, version] = primaryTechId.split('-');
+    let buildSteps = '';
+    let primaryRunCommand = '["/bin/sh", "-c", "echo Your app is running!"]';
+    let primaryBuilderImage: string | null = null;
+    let primaryCopyFrom = '/app';
+    let primaryCopyTo = '.';
+    const runtimePackages: string[] = [];
 
-    switch (language) {
-      case 'golang':
-        return {
-            builderImage: `golang:${version}-alpine`,
-            buildSteps: `
-# Copy Go module files and download dependencies first to leverage Docker cache.
+    // Note: This approach combines steps into a single builder.
+    // A more advanced implementation would use multi-stage builds for each tech.
+    for (const techId of selectedTechs) {
+        const [language, version] = techId.split('-');
+        let techSetup;
+
+        switch (language) {
+            case 'golang':
+                techSetup = {
+                    builderImage: `golang:${version}-alpine`,
+                    buildSteps: `
+# Go setup
 COPY go.mod go.sum ./
 RUN go mod download
-
-# Copy the rest of the source code and build.
 COPY . .
 RUN CGO_ENABLED=0 go build -o /app/server .`.trim(),
-            copyFrom: '/app/server',
-            copyTo: '/app/server',
-            runCommand: '["/app/server"]'
-        };
-      case 'java':
-        return {
-            builderImage: `maven:3.9-eclipse-temurin-${version}`,
-            buildSteps: `
-# Copy POM file and download dependencies to leverage Docker cache.
+                    copyFrom: '/app/server',
+                    copyTo: '/app/server',
+                    runCommand: '["/app/server"]',
+                    runtimePackages: []
+                };
+                break;
+            case 'java':
+                techSetup = {
+                    builderImage: `maven:3.9-eclipse-temurin-${version}`,
+                    buildSteps: `
+# Java setup
 COPY pom.xml .
 RUN mvn dependency:go-offline
-
-# Copy the source code and build the application JAR.
 COPY src ./src
 RUN mvn package -DskipTests && mv target/*.jar /app/app.jar`.trim(),
-            copyFrom: '/app/app.jar',
-            copyTo: '/app/app.jar',
-            runCommand: '["java", "-jar", "/app/app.jar"]'
-        };
-      case 'nodejs':
-        return {
-            builderImage: `node:${version}-alpine`,
-            buildSteps: `
-# Copy package manifests and install dependencies to leverage Docker cache.
+                    copyFrom: '/app/app.jar',
+                    copyTo: '/app/app.jar',
+                    runCommand: '["java", "-jar", "/app/app.jar"]',
+                    runtimePackages: [`java-${version}-openjdk`]
+                };
+                break;
+            case 'nodejs':
+                techSetup = {
+                    builderImage: `node:${version}-alpine`,
+                    buildSteps: `
+# Node.js setup
 COPY package*.json ./
 RUN npm ci
-
-# Copy the rest of the source code and build.
 COPY . .
 RUN npm run build`.trim(),
-            copyFrom: '/app/dist',
-            copyTo: '.',
-            runCommand: '["npm", "run", "preview"]'
-        };
-      case 'python':
-        return {
-            builderImage: `python:${version}-slim`,
-            buildSteps: `
-# Install dependencies first to leverage Docker cache.
+                    copyFrom: '/app/dist',
+                    copyTo: '.',
+                    runCommand: '["npm", "run", "preview"]',
+                    runtimePackages: [`nodejs-${version}`]
+                };
+                break;
+            case 'python':
+                techSetup = {
+                    builderImage: `python:${version}-slim`,
+                    buildSteps: `
+# Python setup
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
-
-# Copy the application files.
 COPY . .`.trim(),
-            copyFrom: '/app',
-            copyTo: '.',
-            runCommand: '["python", "app.py"]'
-        };
-      default:
-        return {
-            builderImage: null,
-            buildSteps: '',
-            copyFrom: '.',
-            copyTo: '.',
-            runCommand: '["/bin/sh", "-c", "echo Your app is running!"]'
-        };
+                    copyFrom: '/app',
+                    copyTo: '.',
+                    runCommand: '["python", "app.py"]',
+                    runtimePackages: [`python-3`]
+                };
+                break;
+            default:
+                continue;
+        }
+
+        if (!primaryBuilderImage) {
+            primaryBuilderImage = techSetup.builderImage;
+            primaryRunCommand = techSetup.runCommand;
+            primaryCopyFrom = techSetup.copyFrom;
+            primaryCopyTo = techSetup.copyTo;
+        }
+
+        buildSteps += (buildSteps ? '\n\n' : '') + techSetup.buildSteps;
+        runtimePackages.push(...techSetup.runtimePackages);
     }
+
+    return {
+        builderImage: primaryBuilderImage,
+        buildSteps: buildSteps,
+        copyFrom: primaryCopyFrom,
+        copyTo: primaryCopyTo,
+        runCommand: primaryRunCommand,
+        runtimePackages: runtimePackages
+    };
   }
   
   private getPackageInstallCmd(packages: string[], baseOs: string): string {

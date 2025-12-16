@@ -1,7 +1,7 @@
 {
-  "name": "docker-image-builder",
+  "name": "secured-container-builder",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.0.09",
   "type": "module",
   "scripts": {
     "dev": "ng serve",

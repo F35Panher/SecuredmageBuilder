@@ -36,7 +36,7 @@ export class SecurityAuditService {
 
     // Filter rules to only include global rules or those relevant to the selected tech stack
     const relevantRules = rules.filter(rule => 
-      !rule.techStack || config.techStack.includes(rule.techStack)
+      !rule.techStack || config.techStack.some(id => id.startsWith(rule.techStack))
     );
 
     // Check Base OS

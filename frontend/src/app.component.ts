@@ -17,6 +17,7 @@ import { DockerVisualizerComponent } from './visualizer/docker-visualizer.compon
   imports: [AdminComponent, CommonModule, DockerVisualizerComponent, FormsModule],
 })
 export class AppComponent {
+  public version = 'v0.0.09';
   private readonly configService = inject(ConfigService);
   private readonly auditService = inject(SecurityAuditService);
   private readonly codeGenerator = inject(CodeGeneratorService);
